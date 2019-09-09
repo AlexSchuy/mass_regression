@@ -1,13 +1,18 @@
 import argparse
 
-from training.run import Run
+import pandas as pd
 from sklearn.metrics import r2_score
+
+from training.run import Run
+
+
 
 def print_metrics(run):
 
     print(f'Printing metrics for run at {run.run_path}.')
 
-    X_train, y_train, df_train, X_test, y_test, df_test = run.get_train_test_datasets(full_dataset=True)
+    X_train, y_train, df_train, X_test, y_test, df_test = run.get_train_test_datasets(
+        full_dataset=True)
     y_jigsaw = df_test['NUz_reco']
 
     if 'testing_score' not in run.result:
@@ -30,6 +35,15 @@ def print_metrics(run):
     if 'jigsaw_score' not in run.result:
         jigsaw_score = r2_score(y_test, y_jigsaw)
     print(f'\tJigsaw score = {jigsaw_score}')
+
+    if 'cv_results' not in run.result:
+        cv_results = pd.DataFrame(run.model.cv_results_)
+        run.result['cv_results'] = pd.DataFrame(run.model.cv_results_)
+        run.save()
+    else:
+        cv_results = run.result['cv_results']
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+        print(cv_results)
 
 
 def main():

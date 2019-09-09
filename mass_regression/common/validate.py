@@ -1,4 +1,4 @@
-MODEL_NAMES = ['sklearn_nn']
+MODEL_NAMES = ['sklearn_nn', 'keras']
 DATASETS = ['Wlnu', 'Wlnu_Wm_label']
 
 def model_name(name):

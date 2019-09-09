@@ -11,6 +11,7 @@ from sklearn.externals import joblib
 from training import data, index, train
 
 
+#pylint: disable=no-member
 class Run():
     """Stores the results of a single run over the data with specific settings. 
 
@@ -70,7 +71,6 @@ class Run():
 
     @classmethod
     def _most_recent_run_path(cls):
-        results_path = utils.get_results_path()
         run_number = cls._most_recent_run_number()
         if run_number == -1:
             return None
@@ -138,7 +138,7 @@ def main():
 
     config = {'model_name': args.model_name, 'train_size': args.train_size, 'test_size': args.test_size, 'seed': args.seed, 'dataset': args.dataset, 'hidden_layers': utils.str_to_list(args.hidden_layers, type_func=int)}
 
-    run = Run(config)
+    _ = Run(config)
 
 
 if __name__ == '__main__':

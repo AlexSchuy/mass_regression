@@ -4,17 +4,20 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+autopep8 = "*"
+pylint = "*"
 
 [packages]
-pre-commit = "*"
+pyyaml = "*"
 seaborn = "*"
 numpy = "*"
-progressbar2 = "*"
 pandas = "*"
+progressbar2 = "*"
 jupyter = "*"
 sklearn = "*"
 matplotlib = "*"
 scipy = "*"
+tensorflow = "*"
 
 [requires]
-python_version = "3.6"
+python_version = "3.7"

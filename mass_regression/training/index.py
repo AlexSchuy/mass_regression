@@ -6,53 +6,43 @@ import operator
 import os
 
 import numpy as np
-import pandas as pd
+import yaml
+
 from common import utils
 
 
-def validate_index(index, config):
-    assert index.empty or set(index.columns.values) == set(config.keys(
-    )), f'index contains columns {index.columns.values} but given config has keys {list(config.keys())}. Please regenerate the index.'
-
-
 def get_index_path():
-    return os.path.join(utils.get_results_path(), 'index.csv')
+    return os.path.join(utils.get_results_path(), 'index.yml')
 
 
 def load():
     index_path = get_index_path()
     if os.path.exists(index_path):
-        index = pd.read_csv(index_path, index_col='run_number')
+        with open(index_path, 'r') as f:
+            index = yaml.full_load(f)
     else:
-        index = pd.DataFrame()
+        index = {}
     return index
 
 
 def get_run_number(config):
     index = load()
-    if index.empty:
-        return -1
-    try:
-        matches_one = [index[k] == v for k, v in config.items()]
-        matches_all = functools.reduce(operator.and_, matches_one)
-        matches = index.index[matches_all]
-        assert len(
-            matches) <= 1, 'Index corrupted, multiple run numbers correspond to the given config. Please regenerate the index.'
-        return matches[0]
-    except IndexError:
-        return -1
+    for run_number in index:
+        matches = True
+        for name, value in index[run_number].items():
+            if name not in config or config[name] != value:
+                matches = False
+        if matches:
+            return run_number
+    return -1
 
 
 def get_config(run_number):
     index = load()
-    if index.empty:
+    if run_number not in index:
         return None
-    try:
-        entry = index.loc[run_number]
-        config = dict(entry)
-        return config
-    except KeyError:
-        return None
+    else:
+        return index[run_number]
 
 
 def add(run_number, config):
@@ -62,17 +52,15 @@ def add(run_number, config):
     assert all(not type(v) == list for k, v in config.items()
                ), 'Lists cannot be stored as elements in the index.'
     index = load()
-    validate_index(index, config)
-    if index.empty:
-        index = pd.DataFrame(columns=list(config.keys()))
-    index.loc[run_number] = config
-    index.to_csv(get_index_path(), index_label='run_number')
+    index[run_number] = config
+    with open(get_index_path(), 'w+') as f:
+        yaml.dump(index, f)
 
 
 def remove(run_number, config):
     assert get_run_number(
         config) == run_number, f'({run_number}, {config}) is not present in index.'
     index = load()
-    validate_index(index, config)
-    index.drop(run_number, inplace=True)
-    index.to_csv(get_index_path())
+    del index[run_number]
+    with open(get_index_path(), 'w') as f:
+        yaml.dump(index, f)
