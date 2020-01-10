@@ -23,8 +23,8 @@ from training.data import get_train_test_datasets
 from training.loguniform import LogUniform
 import tensorflow as tf
 from tensorflow.keras import layers, Sequential
+from tensorflow.keras.layers import Dense, Dropout, Flatten
 from sklearn.metrics import r2_score, make_scorer
-from tensorflow.keras import backend as K
 
 def make_pipeline(model, model_scaler):
     model_steps = [('model_scaler', model_scaler), ('model', model)]
@@ -47,18 +47,20 @@ def make_sklearn_nn(hidden_layers=(100,), seed=0):
 
     return cv
 
-def keras_build_fn(hidden_layers=(100,), alpha=0.001):
-    model = Sequential()
-    for i, layer_size in enumerate(hidden_layers):
-        if i == 0:
-            model.add(layers.Dense(layer_size, activation='relu', input_dim=6))
-        else:
-            model.add(layers.Dense(layer_size, activation='relu'))
-        
-    model.add(layers.Dense(1))
-    optimizer = tf.keras.optimizers.Adam(lr=alpha)
-    model.compile(loss='mean_squared_error', optimizer=optimizer)
-    return model
+
+def build_model(dataset, hparams, num_outputs):
+    dataset.batch(hparams['batch_size'])
+
+    model = tf.keras.models.Sequential()
+    model.add(Flatten())
+    for _ in range(hparams['num_layers']):
+
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(hparams['num_units'], activation=tf.nn.relu),
+        tf.keras.layers.Dropout(hparams['dropout']),
+        tf.keras.layers.Dense(num_outputs)
+    ])
 
 def make_keras_model(hidden_layers=(100,), seed=0):
     nn = KerasRegressor(build_fn=keras_build_fn)

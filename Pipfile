@@ -5,19 +5,15 @@ verify_ssl = true
 
 [dev-packages]
 autopep8 = "*"
-pylint = "*"
 
 [packages]
-pyyaml = "*"
-seaborn = "*"
 numpy = "*"
 pandas = "*"
 progressbar2 = "*"
-jupyter = "*"
-sklearn = "*"
 matplotlib = "*"
-scipy = "*"
+seaborn = "*"
 tensorflow = "*"
+keras-tuner = "*"
 
 [requires]
 python_version = "3.7"

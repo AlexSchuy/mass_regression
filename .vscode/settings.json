@@ -1,0 +1,7 @@
+{
+    "python.pythonPath": "C:\\Users\\alexj\\.virtualenvs\\mass_regression-87a6zBVK\\Scripts\\python.exe",
+    "terminal.integrated.env.windows": {
+        "PYTHONPATH": "${workspaceFolder}\\mass_regression"
+    },
+    "python.autoComplete.extraPaths": ["C:\\Users\\alexj\\.virtualenvs\\mass_regression-87a6zBVK\\Lib\\virtual-site-packages"]
+}

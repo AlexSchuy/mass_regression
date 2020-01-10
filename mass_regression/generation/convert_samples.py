@@ -1,7 +1,7 @@
 import os
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import progressbar
 
 from common import utils
@@ -16,9 +16,11 @@ def calc_num_events(filepath, lines_per_event):
             num_lines += 1
     return num_lines // lines_per_event
 
+
 def convert_Wlnu(filepath, output_filepath):
     num_events = calc_num_events(filepath, lines_per_event=10)
-    data = pd.DataFrame(columns=['Lx_gen', 'Ly_gen', 'Lz_gen', 'Lm_gen', 'Lx_reco', 'Ly_reco', 'Lz_reco', 'Lm_reco', 'METx', 'METy', 'NUx_gen', 'NUy_gen', 'NUz_gen', 'NUm_gen', 'NUx_reco', 'NUy_reco', 'NUz_reco', 'NUm_gen', 'Wm_gen', 'Wm_reco'], index=np.arange(num_events), dtype=np.float)
+    data = pd.DataFrame(columns=['Lx_gen', 'Ly_gen', 'Lz_gen', 'Lm_gen', 'Lx_reco', 'Ly_reco', 'Lz_reco', 'Lm_reco', 'METx', 'METy', 'NUx_gen', 'NUy_gen',
+                                 'NUz_gen', 'NUm_gen', 'NUx_reco', 'NUy_reco', 'NUz_reco', 'NUm_gen', 'Wm_gen', 'Wm_reco'], index=np.arange(num_events), dtype=np.float)
     event = -1
     gen = True
     with progressbar.ProgressBar(max_value=num_events, redirect_stdout=True) as p:
@@ -79,7 +81,8 @@ def convert_Wlnu(filepath, output_filepath):
 def main():
     project_path = utils.get_project_path()
     filepath = os.path.join(project_path, 'samples', 'raw', 'output_Wlnu.dat')
-    output_filepath = os.path.join(project_path, 'samples', 'converted', 'Wlnu.pkl')
+    output_filepath = os.path.join(
+        project_path, 'samples', 'converted', 'Wlnu.pkl')
     convert_Wlnu(filepath, output_filepath)
 
 
