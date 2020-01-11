@@ -5,6 +5,7 @@ verify_ssl = true
 
 [dev-packages]
 autopep8 = "*"
+pylint = "*"
 
 [packages]
 numpy = "*"
@@ -14,6 +15,7 @@ matplotlib = "*"
 seaborn = "*"
 tensorflow = "*"
 keras-tuner = "*"
+pylint = "*"
 
 [requires]
 python_version = "3.7"
