@@ -16,6 +16,10 @@ seaborn = "*"
 tensorflow = "*"
 keras-tuner = "*"
 pylint = "*"
+tensorboard = "*"
+notebook = "*"
+altair = "*"
+vega-datasets = "*"
 
 [requires]
 python_version = "3.7"

@@ -4,6 +4,7 @@ These routines handle common utility functions for the other modules, such as
 get common paths and handling config files.
 """
 import os
+from pathlib import Path
 
 
 def get_source_path():
