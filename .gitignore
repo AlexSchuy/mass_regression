@@ -3,6 +3,8 @@
 # Results
 results/
 samples/
+altair*
+logs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

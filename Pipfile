@@ -20,6 +20,7 @@ tensorboard = "*"
 notebook = "*"
 altair = "*"
 vega-datasets = "*"
+altair-data-server = "*"
 
 [requires]
 python_version = "3.7"

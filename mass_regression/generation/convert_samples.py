@@ -8,7 +8,7 @@ import tensorflow as tf
 
 import definitions
 from common import utils
-
+from sklearn.model_selection import train_test_split
 
 def calc_num_events(filepath, lines_per_event):
     num_lines = 1
@@ -121,13 +121,13 @@ def convert_Wlnu(filepath):
     return data
 
 
-def train_dev_test_split(df, n_train, n_dev, n_test):
-    dataset = tf.data.Dataset.from_tensor_slices(df.values)
-    dataset.shuffle(n_train + n_dev + n_test, seed=10856)
-    train_dataset = dataset.take(n_train)
-    dev_dataset = dataset.skip(n_train).take(n_dev)
-    test_dataset = dataset.skip(n_train + n_dev)
-    return train_dataset, dev_dataset, test_dataset
+def train_val_test_split(df, n_train, n_val, n_test, seed=10856):
+    train, test = train_test_split(df, train_size=n_train + n_val, test_size=n_test, random_state=seed)
+    train, val = train_test_split(train, train_size=n_train, test_size=n_val, random_state=seed)
+    train.reset_index(drop=True, inplace=True)
+    val.reset_index(drop=True, inplace=True)
+    test.reset_index(drop=True, inplace=True)
+    return train, val, test
 
 
 def main():
@@ -144,28 +144,26 @@ def main():
             df = convert_Wlnu(input_filepath)
             df.to_pickle(pickle_path)
         n_train = 80000
-        n_dev = 10000
+        n_val = 10000
         n_test = 10000
     elif dataset == 'H125':
         if not pickle_path.exists():
             df = convert_H125(input_filepath)
             df.to_pickle(pickle_path)
         n_train = 80000
-        n_dev = 10000
+        n_val = 10000
         n_test = 10000
     else:
         raise NotImplementedError('Unknown dataset!')
     if pickle_path.exists():
         df = pd.read_pickle(pickle_path)
-    train_path = dataset_dir / 'train.tfrecords'
-    dev_path = dataset_dir / 'dev.tfrecords'
-    test_path = dataset_dir / 'test.tfrecords'
-    train, dev, test = train_dev_test_split(df, n_train, n_dev, n_test)
+    train_path = dataset_dir / 'train.pkl'
+    val_path = dataset_dir / 'val.pkl'
+    test_path = dataset_dir / 'test.pkl'
+    train, val, test = train_val_test_split(df, n_train,  n_val, n_test)
 
-    for path, dataset in zip((train_path, dev_path, test_path), (train, dev, test)):
-        dataset = dataset.map(tf.io.serialize_tensor)
-        writer = tf.data.experimental.TFRecordWriter(str(path))
-        writer.write(dataset)
+    for path, dataset in zip((train_path, val_path, test_path), (train, val, test)):
+        dataset.to_pickle(path)
 
 
 if __name__ == '__main__':
