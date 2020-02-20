@@ -21,6 +21,7 @@ notebook = "*"
 altair = "*"
 vega-datasets = "*"
 altair-data-server = "*"
+lorentz = "*"
 
 [requires]
 python_version = "3.7"

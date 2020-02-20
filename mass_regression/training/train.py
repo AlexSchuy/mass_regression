@@ -102,7 +102,7 @@ def random_search(build_fn, x, y, x_val, y_val, n, hp_rv, log_dir):
 
 def main():
     dataset = 'H125'
-    target = 'H'
+    target = 'nu'
     model_version = 'v2'
 
     log_dir = definitions.LOG_DIR / dataset / model_version
