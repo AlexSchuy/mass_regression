@@ -7,9 +7,6 @@ import tensorflow as tf
 import definitions
 
 
-
-
-
 def add_fourvectors(px1, py1, pz1, m1, px2, py2, pz2, m2):
     def E(px, py, pz, m):
         return px**2 + py**2 + pz**2 + m**2
@@ -19,7 +16,7 @@ def add_fourvectors(px1, py1, pz1, m1, px2, py2, pz2, m2):
     py = py1 + py2
     pz = pz1 + pz2
     E = E1 + E2
-    m = E**2 - px**2 - py**2 - pz**2
+    m = (E**2 - px**2 - py**2 - pz**2)**0.5
     return px, py, pz, m
 
 
@@ -81,7 +78,7 @@ def get_datasets(dataset='Wlnu', target='W', scale_x=False, scale_y=False, x_y_s
         x_test, y_test = get_data('test')
 
         def scale(X, mean, std):
-                return (X - mean) / std
+            return (X - mean) / std
         if scale_x:
             x_mean = np.mean(x_train.values)
             x_std = np.std(x_train.values)
