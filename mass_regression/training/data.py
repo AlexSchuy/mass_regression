@@ -9,7 +9,7 @@ import definitions
 
 def add_fourvectors(px1, py1, pz1, m1, px2, py2, pz2, m2):
     def E(px, py, pz, m):
-        return px**2 + py**2 + pz**2 + m**2
+        return (px**2 + py**2 + pz**2 + m**2)**0.5
     E1 = E(px1, py1, pz1, m1)
     E2 = E(px2, py2, pz2, m2)
     px = px1 + px2
