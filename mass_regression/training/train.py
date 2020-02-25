@@ -44,14 +44,14 @@ def build_v1_model(hparams, input_shape):
     return model
 
 
-def build_v2_model(hparams, input_shape):
+def build_v2_model(hparams, input_shape, output_shape):
     model = keras.Sequential()
     model.add(layers.Flatten(input_shape=input_shape))
     for _ in range(hparams['num_layers']):
         model.add(layers.Dense(units=hparams['num_units'],
                                activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)))
         model.add(layers.Dropout(rate=hparams['dropout']))
-    model.add(layers.Dense(1, dtype='float32'))
+    model.add(layers.Dense(output_shape[0], dtype='float32'))
     model.compile(
         optimizer=keras.optimizers.Adam(
             hparams['learning_rate']),
@@ -64,7 +64,7 @@ def train_test_model(build_fn, x, y, x_val, y_val, hparams, log_dir):
     mean = np.mean(x)
     std = np.std(x)
     x_val = preprocess(x_val, mean, std)
-    model = build_fn(hparams, input_shape=x.shape[1:])
+    model = build_fn(hparams, input_shape=x.shape[1:], output_shape=y.shape[1:])
     if 'epochs' in hparams:
         epochs = hparams['epochs']
     else:
@@ -102,10 +102,10 @@ def random_search(build_fn, x, y, x_val, y_val, n, hp_rv, log_dir):
 
 def main():
     dataset = 'H125'
-    target = 'nu'
+    target = 'W'
     model_version = 'v2'
 
-    log_dir = definitions.LOG_DIR / dataset / model_version
+    log_dir = definitions.LOG_DIR / dataset / f'{target}-{model_version}'
     shutil.rmtree(log_dir, ignore_errors=True)
     log_dir.mkdir(parents=True)
     hp_rv = {'num_layers': randint(1, 3),
@@ -117,7 +117,7 @@ def main():
     print(log_dir)
 
     x_train, y_train, x_val, y_val, x_test, y_test = data.get_datasets(
-        dataset=dataset, target=target, scale=True)
+        dataset=dataset, target=target, scale_x=True, scale_y=True)
     train.random_search(build_fn=build_v2_model, x=x_train, y=y_train,
                         x_val=x_val, y_val=y_val, n=20, hp_rv=hp_rv, log_dir=log_dir)
 
