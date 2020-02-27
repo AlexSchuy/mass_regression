@@ -102,13 +102,13 @@ def random_search(build_fn, x, y, x_val, y_val, n, hp_rv, log_dir):
 
 def main():
     dataset = 'H125'
-    target = 'W'
+    target = 'nu'
     model_version = 'v2'
 
-    log_dir = definitions.LOG_DIR / dataset / f'{target}-{model_version}'
+    log_dir = definitions.LOG_DIR / dataset / f'fix-{target}-{model_version}'
     shutil.rmtree(log_dir, ignore_errors=True)
     log_dir.mkdir(parents=True)
-    hp_rv = {'num_layers': randint(1, 3),
+    hp_rv = {'num_layers': randint(1, 4),
              'num_units': StepUniform(start=10, num=20, step=10),
              'learning_rate': LogUniform(loc=-5, scale=4, base=10, discrete=False),
              'batch_size': StepLogUniform(start=5, num=4, step=1, base=2),
@@ -119,7 +119,7 @@ def main():
     x_train, y_train, x_val, y_val, x_test, y_test = data.get_datasets(
         dataset=dataset, target=target, scale_x=True, scale_y=True)
     train.random_search(build_fn=build_v2_model, x=x_train, y=y_train,
-                        x_val=x_val, y_val=y_val, n=20, hp_rv=hp_rv, log_dir=log_dir)
+                        x_val=x_val, y_val=y_val, n=60, hp_rv=hp_rv, log_dir=log_dir)
 
 
 if __name__ == '__main__':
