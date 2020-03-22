@@ -40,9 +40,9 @@ def get_datasets(dataset='Wlnu', target='W', scale=False):
         mean = np.mean(x_train.values)
         std = np.std(x_train.values)
 
-        def scale(X):
+        def scaled(X):
             return (X - mean) / std
-        x_train = scale(x_train)
-        x_val = scale(x_val)
-        x_test = scale(x_test)
+        x_train = scaled(x_train)
+        x_val = scaled(x_val)
+        x_test = scaled(x_test)
         return x_train, y_train, x_val, y_val, x_test, y_test
