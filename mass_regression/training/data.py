@@ -33,8 +33,8 @@ def add_to_df(p1, prefix1, p2, prefix2, p, df):
 
 
 def calc_H125(df):
-    df['Nbx_pred'] = df['METx'] - df['Nax_pred'] 
-    df['Nby_pred'] = df['METy'] - df['Nay_pred'] 
+    df['Nbx_pred'] = df['METx'] - df['Nax_pred']
+    df['Nby_pred'] = df['METy'] - df['Nay_pred']
     add_to_df('La', 'gen', 'Na', 'pred', 'Wa', df)
     add_to_df('Lb', 'gen', 'Nb', 'pred', 'Wb', df)
     add_to_df('Wa', 'pred', 'Wb', 'pred', 'H', df)
@@ -62,7 +62,7 @@ def get_jigsaw(dataset='Wlnu', target='W'):
     return get('train'), get('val'), get('test')
 
 
-def get_datasets(dataset='Wlnu', target='W', scale_x=False, scale_y=False, x_y_split=True):
+def get_datasets(dataset='Wlnu', target='W', scale_x=False, scale_y=False, x_y_split=True, pad_target=None):
     if (scale_x or scale_y) and not x_y_split:
         raise ValueError('Cannot scale data that is not being x/y split.')
     data_path = definitions.SAMPLES_DIR / dataset
@@ -74,7 +74,10 @@ def get_datasets(dataset='Wlnu', target='W', scale_x=False, scale_y=False, x_y_s
             return data
         else:
             x = data[definitions.FEATURES[dataset]]
-            y = data[definitions.TARGETS[dataset][target]]
+            targets = definitions.TARGETS[dataset][target]
+            if pad_target:
+                targets = targets + definitions.PAD_TARGETS[dataset][pad_target]
+            y = data[targets]
             return x, y
 
     if x_y_split:
@@ -107,3 +110,28 @@ def get_datasets(dataset='Wlnu', target='W', scale_x=False, scale_y=False, x_y_s
         df_val = get_data('val')
         df_test = get_data('test')
         return df_train, df_val, df_test
+
+
+def get_num_targets(dataset, target):
+    return len(definitions.TARGETS[dataset][target])
+
+def get_num_pad_targets(dataset, pad_target):
+    return len(definitions.PAD_TARGETS[dataset][pad_target])
+
+def get_scale_funcs(dataset, target, pad_target):
+    _, padded_y, _, _, _, _ = get_datasets(dataset=dataset, target=target, pad_target=pad_target)
+    num_targets = get_num_targets(dataset, target)
+    y = padded_y.iloc[:, :num_targets]
+    y_pad = padded_y.iloc[:, num_targets:]
+    y_mean = np.mean(y).values
+    y_std = np.std(y).values
+    y_pad_mean = np.mean(y_pad).values
+    y_pad_std = np.std(y_pad).values
+    
+    def scale_y_pad(Y_pad):
+        return (Y_pad - y_pad_mean) / y_pad_std
+
+    def unscale_y(Y):
+        return Y * y_std + y_mean
+
+    return scale_y_pad, unscale_y
