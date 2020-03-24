@@ -13,10 +13,10 @@ from scipy.stats.distributions import randint
 from tensorboard.plugins.hparams import api as hp
 from tensorflow import keras
 from tensorflow.keras import layers
+from tensorflow.keras.losses import MSE
 from tensorflow.keras.metrics import (MeanAbsoluteError,
                                       MeanAbsolutePercentageError,
                                       RootMeanSquaredError)
-from tensorflow.keras.losses import MSE
 from tensorflow.keras.mixed_precision import experimental as mixed_precision
 
 import definitions
@@ -60,6 +60,7 @@ def build_v2_model(hparams, input_shape, output_shape):
         metrics=[MeanAbsolutePercentageError(), MeanAbsoluteError(), RootMeanSquaredError()])
     return model
 
+
 def calc_Wm(input_tensor, y_pred):
     METx = input_tensor[:, 0]
     METy = input_tensor[:, 1]
@@ -79,9 +80,12 @@ def calc_Wm(input_tensor, y_pred):
     Nby_pred = METy - Nay_pred
     Nbz_pred = y_pred[:, 3]
     Nbm_pred = tf.zeros_like(Nbx_pred)
-    _, _, _, Wam_pred = data.add_fourvectors(Nax_pred, Nay_pred, Naz_pred, Nam_pred, Lax_gen, Lay_gen, Laz_gen, Lam_gen)
-    _, _, _, Wbm_pred = data.add_fourvectors(Nbx_pred, Nby_pred, Nbz_pred, Nbm_pred, Lbx_gen, Lby_gen, Lbz_gen, Lbm_gen)
+    _, _, _, Wam_pred = data.add_fourvectors(
+        Nax_pred, Nay_pred, Naz_pred, Nam_pred, Lax_gen, Lay_gen, Laz_gen, Lam_gen)
+    _, _, _, Wbm_pred = data.add_fourvectors(
+        Nbx_pred, Nby_pred, Nbz_pred, Nbm_pred, Lbx_gen, Lby_gen, Lbz_gen, Lbm_gen)
     return Wam_pred, Wbm_pred
+
 
 def make_mixed_loss(input_tensor, mix_weight, dataset, target, pad_target):
     if dataset == 'H125' and target == 'nu' and pad_target == 'W':
@@ -91,6 +95,7 @@ def make_mixed_loss(input_tensor, mix_weight, dataset, target, pad_target):
     scale_y_pad, unscale_y = data.get_scale_funcs(dataset, target, pad_target)
 
     num_targets = data.get_num_targets(dataset, target)
+
     def mixed_loss(padded_y_true, padded_y_pred):
         y_true = padded_y_true[:, :num_targets]
         y_true_pad = padded_y_true[:, num_targets:]
@@ -100,30 +105,36 @@ def make_mixed_loss(input_tensor, mix_weight, dataset, target, pad_target):
         return MSE(y_true, y_pred) + mix_weight * MSE(y_true_pad, y_pred_pad)
     return mixed_loss
 
+
 def make_mixed_model_build_fn(dataset, target, pad_target, mix_weight):
     num_pad_targets = data.get_num_pad_targets(dataset, pad_target)
+
     def build_mixed_model(hparams, input_shape, output_shape):
         model = keras.Sequential()
         model.add(layers.Flatten(input_shape=input_shape))
         for _ in range(hparams['num_layers']):
             model.add(layers.Dense(units=hparams['num_units'],
-                                activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)))
+                                   activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)))
             model.add(layers.Dropout(rate=hparams['dropout']))
         model.add(layers.Dense(output_shape[0], dtype='float32'))
-        model.add(layers.Lambda(lambda x: tf.pad(x, [[0, 0], [0, num_pad_targets]])))
+        model.add(layers.Lambda(lambda x: tf.pad(
+            x, [[0, 0], [0, num_pad_targets]])))
         model.compile(
             optimizer=keras.optimizers.Adam(
                 hparams['learning_rate']),
-            loss=make_mixed_loss(model.input, mix_weight, dataset, target, pad_target),
+            loss=make_mixed_loss(model.input, mix_weight,
+                                 dataset, target, pad_target),
             metrics=[MeanAbsolutePercentageError(), MeanAbsoluteError(), RootMeanSquaredError()])
         return model
     return build_mixed_model
+
 
 def train_test_model(build_fn, x, y, x_val, y_val, hparams, log_dir):
     mean = np.mean(x)
     std = np.std(x)
     x_val = preprocess(x_val, mean, std)
-    model = build_fn(hparams, input_shape=x.shape[1:], output_shape=y.shape[1:])
+    model = build_fn(
+        hparams, input_shape=x.shape[1:], output_shape=y.shape[1:])
     if 'epochs' in hparams:
         epochs = hparams['epochs']
     else:
@@ -158,20 +169,23 @@ def random_search(build_fn, x, y, x_val, y_val, n, hp_rv, log_dir):
                 best_loss = loss
                 best_model.save(str(log_dir / 'best_model.h5'))
 
+
 def get_mixed_log_dir(dataset, target, pad_target, model_version, mix_weight):
     return definitions.LOG_DIR / dataset / f'{target}-{pad_target}-{model_version}-w{mix_weight}'
 
+
 def run_mixed(dataset, target, pad_target, model_version):
     for mix_weight in (0.0, 1.0, 10.0):
-        log_dir = get_mixed_log_dir(dataset, target, pad_target, model_version, mix_weight)
+        log_dir = get_mixed_log_dir(
+            dataset, target, pad_target, model_version, mix_weight)
         shutil.rmtree(log_dir, ignore_errors=True)
         log_dir.mkdir(parents=True)
         hp_rv = {'num_layers': randint(1, 4),
-                'num_units': StepUniform(start=10, num=20, step=10),
-                'learning_rate': LogUniform(loc=-5, scale=4, base=10, discrete=False),
-                'batch_size': StepLogUniform(start=5, num=4, step=1, base=2),
-                'epochs': randint(10, 301),
-                'dropout': StepUniform(start=0.0, num=2, step=0.5)}
+                 'num_units': StepUniform(start=10, num=20, step=10),
+                 'learning_rate': LogUniform(loc=-5, scale=4, base=10, discrete=False),
+                 'batch_size': StepLogUniform(start=5, num=4, step=1, base=2),
+                 'epochs': randint(10, 301),
+                 'dropout': StepUniform(start=0.0, num=2, step=0.5)}
         print(log_dir)
 
         x_train, y_train, x_val, y_val, _, _ = data.get_datasets(
@@ -179,12 +193,13 @@ def run_mixed(dataset, target, pad_target, model_version):
         train.random_search(build_fn=make_mixed_model_build_fn(dataset, target, pad_target, mix_weight), x=x_train, y=y_train,
                             x_val=x_val, y_val=y_val, n=60, hp_rv=hp_rv, log_dir=log_dir)
 
+
 def main():
     dataset = 'H125'
     target = 'nu'
     pad_target = 'W'
     model_version = 'mixed_v1'
-    
+
     run_mixed(dataset, target, pad_target, model_version)
 
 

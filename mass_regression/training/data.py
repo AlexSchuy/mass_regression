@@ -76,7 +76,8 @@ def get_datasets(dataset='Wlnu', target='W', scale_x=False, scale_y=False, x_y_s
             x = data[definitions.FEATURES[dataset]]
             targets = definitions.TARGETS[dataset][target]
             if pad_target:
-                targets = targets + definitions.PAD_TARGETS[dataset][pad_target]
+                targets = targets + \
+                    definitions.PAD_TARGETS[dataset][pad_target]
             y = data[targets]
             return x, y
 
@@ -115,11 +116,14 @@ def get_datasets(dataset='Wlnu', target='W', scale_x=False, scale_y=False, x_y_s
 def get_num_targets(dataset, target):
     return len(definitions.TARGETS[dataset][target])
 
+
 def get_num_pad_targets(dataset, pad_target):
     return len(definitions.PAD_TARGETS[dataset][pad_target])
 
+
 def get_scale_funcs(dataset, target, pad_target):
-    _, padded_y, _, _, _, _ = get_datasets(dataset=dataset, target=target, pad_target=pad_target)
+    _, padded_y, _, _, _, _ = get_datasets(
+        dataset=dataset, target=target, pad_target=pad_target)
     num_targets = get_num_targets(dataset, target)
     y = padded_y.iloc[:, :num_targets]
     y_pad = padded_y.iloc[:, num_targets:]
@@ -127,7 +131,7 @@ def get_scale_funcs(dataset, target, pad_target):
     y_std = np.std(y).values
     y_pad_mean = np.mean(y_pad).values
     y_pad_std = np.std(y_pad).values
-    
+
     def scale_y_pad(Y_pad):
         return (Y_pad - y_pad_mean) / y_pad_std
 
