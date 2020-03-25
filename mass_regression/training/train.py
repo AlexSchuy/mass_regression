@@ -32,8 +32,9 @@ def preprocess(x, mean, std):
 
 def build_v1_model(hparams, input_shape):
     model = keras.Sequential()
-    model.add(layers.Flatten(input_shape=input_shape))
-    for _ in range(hparams['num_layers']):
+    model.add(layers.Dense(units=hparams['num_units'],
+                           activation='relu', input_shape=input_shape))
+    for _ in range(hparams['num_layers'] - 1):
         model.add(layers.Dense(units=hparams['num_units'],
                                activation='relu'))
     model.add(layers.Dense(1))
@@ -47,8 +48,10 @@ def build_v1_model(hparams, input_shape):
 
 def build_v2_model(hparams, input_shape, output_shape):
     model = keras.Sequential()
-    model.add(layers.Flatten(input_shape=input_shape))
-    for _ in range(hparams['num_layers']):
+    model.add(layers.Dense(units=hparams['num_units'],
+                           activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01), input_shape=input_shape))
+    model.add(layers.Dropout(rate=hparams['dropout']))
+    for _ in range(hparams['num_layers'] - 1):
         model.add(layers.Dense(units=hparams['num_units'],
                                activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)))
         model.add(layers.Dropout(rate=hparams['dropout']))
@@ -101,9 +104,38 @@ def make_mixed_loss(input_tensor, mix_weight, dataset, target, pad_target):
         y_true_pad = padded_y_true[:, num_targets:]
         y_pred = padded_y_pred[:, :num_targets]
         y_pred_pad = scale_y_pad(calc_pad(input_tensor, unscale_y(y_pred)))
-
         return MSE(y_true, y_pred) + mix_weight * MSE(y_true_pad, y_pred_pad)
     return mixed_loss
+
+
+def make_unpadded_MAPE_metric(dataset, target):
+    num_targets = data.get_num_targets(dataset, target)
+
+    def unpadded_MAPE(padded_y_true, padded_y_pred):
+        y_true = padded_y_true[:, :num_targets]
+        y_pred = padded_y_pred[:, :num_targets]
+        return tf.keras.losses.MAPE(y_true, y_pred)
+    return unpadded_MAPE
+
+
+def make_unpadded_MAE_metric(dataset, target):
+    num_targets = data.get_num_targets(dataset, target)
+
+    def unpadded_MAE(padded_y_true, padded_y_pred):
+        y_true = padded_y_true[:, :num_targets]
+        y_pred = padded_y_pred[:, :num_targets]
+        return tf.keras.losses.MAE(y_true, y_pred)
+    return unpadded_MAE
+
+
+def make_unpadded_RMSE_metric(dataset, target):
+    num_targets = data.get_num_targets(dataset, target)
+
+    def unpadded_RMSE(padded_y_true, padded_y_pred):
+        y_true = padded_y_true[:, :num_targets]
+        y_pred = padded_y_pred[:, :num_targets]
+        return tf.keras.losses.MSE(y_true, y_pred)**(1/2)
+    return unpadded_RMSE
 
 
 def make_mixed_model_build_fn(dataset, target, pad_target, mix_weight):
@@ -111,8 +143,10 @@ def make_mixed_model_build_fn(dataset, target, pad_target, mix_weight):
 
     def build_mixed_model(hparams, input_shape, output_shape):
         model = keras.Sequential()
-        model.add(layers.Flatten(input_shape=input_shape))
-        for _ in range(hparams['num_layers']):
+        model.add(layers.Dense(units=hparams['num_units'],
+                               activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01), input_shape=input_shape))
+        model.add(layers.Dropout(rate=hparams['dropout']))
+        for _ in range(hparams['num_layers'] - 1):
             model.add(layers.Dense(units=hparams['num_units'],
                                    activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)))
             model.add(layers.Dropout(rate=hparams['dropout']))
@@ -124,15 +158,12 @@ def make_mixed_model_build_fn(dataset, target, pad_target, mix_weight):
                 hparams['learning_rate']),
             loss=make_mixed_loss(model.input, mix_weight,
                                  dataset, target, pad_target),
-            metrics=[MeanAbsolutePercentageError(), MeanAbsoluteError(), RootMeanSquaredError()])
+            metrics=[make_unpadded_MAPE_metric(dataset, target), make_unpadded_MAE_metric(dataset, target), make_unpadded_RMSE_metric(dataset, target)])
         return model
     return build_mixed_model
 
 
 def train_test_model(build_fn, x, y, x_val, y_val, hparams, log_dir):
-    mean = np.mean(x)
-    std = np.std(x)
-    x_val = preprocess(x_val, mean, std)
     model = build_fn(
         hparams, input_shape=x.shape[1:], output_shape=y.shape[1:])
     if 'epochs' in hparams:
