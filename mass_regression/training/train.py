@@ -64,17 +64,17 @@ def build_v2_model(hparams, input_shape, output_shape):
     return model
 
 
-def calc_Wm(input_tensor, y_pred):
-    METx = input_tensor[:, 0]
-    METy = input_tensor[:, 1]
-    Lax_gen = input_tensor[:, 2]
-    Lay_gen = input_tensor[:, 3]
-    Laz_gen = input_tensor[:, 4]
-    Lam_gen = input_tensor[:, 5]
-    Lbx_gen = input_tensor[:, 6]
-    Lby_gen = input_tensor[:, 7]
-    Lbz_gen = input_tensor[:, 8]
-    Lbm_gen = input_tensor[:, 9]
+def calc_Wm(x, y_pred):
+    METx = x[:, 0]
+    METy = x[:, 1]
+    Lax_gen = x[:, 2]
+    Lay_gen = x[:, 3]
+    Laz_gen = x[:, 4]
+    Lam_gen = x[:, 5]
+    Lbx_gen = x[:, 6]
+    Lby_gen = x[:, 7]
+    Lbz_gen = x[:, 8]
+    Lbm_gen = x[:, 9]
     Nax_pred = y_pred[:, 0]
     Nay_pred = y_pred[:, 1]
     Naz_pred = y_pred[:, 2]
@@ -87,10 +87,10 @@ def calc_Wm(input_tensor, y_pred):
         Nax_pred, Nay_pred, Naz_pred, Nam_pred, Lax_gen, Lay_gen, Laz_gen, Lam_gen)
     _, _, _, Wbm_pred = data.add_fourvectors(
         Nbx_pred, Nby_pred, Nbz_pred, Nbm_pred, Lbx_gen, Lby_gen, Lbz_gen, Lbm_gen)
-    return Wam_pred, Wbm_pred
+    return tf.stack([Wam_pred, Wbm_pred])
 
 
-def make_mixed_loss(input_tensor, mix_weight, dataset, target, pad_target):
+def make_mixed_loss(x, mix_weight, dataset, target, pad_target):
     if dataset == 'H125' and target == 'nu' and pad_target == 'W':
         calc_pad = calc_Wm
     else:
@@ -103,7 +103,7 @@ def make_mixed_loss(input_tensor, mix_weight, dataset, target, pad_target):
         y_true = padded_y_true[:, :num_targets]
         y_true_pad = padded_y_true[:, num_targets:]
         y_pred = padded_y_pred[:, :num_targets]
-        y_pred_pad = scale_y_pad(calc_pad(input_tensor, unscale_y(y_pred)))
+        y_pred_pad = scale_y_pad(calc_pad(x, unscale_y(y_pred)))
         return MSE(y_true, y_pred) + mix_weight * MSE(y_true_pad, y_pred_pad)
     return mixed_loss
 
@@ -140,6 +140,7 @@ def make_unpadded_RMSE_metric(dataset, target):
 
 def make_mixed_model_build_fn(dataset, target, pad_target, mix_weight):
     num_pad_targets = data.get_num_pad_targets(dataset, pad_target)
+    num_targets = data.get_num_targets(dataset, target)
 
     def build_mixed_model(hparams, input_shape, output_shape):
         model = keras.Sequential()
@@ -150,7 +151,7 @@ def make_mixed_model_build_fn(dataset, target, pad_target, mix_weight):
             model.add(layers.Dense(units=hparams['num_units'],
                                    activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)))
             model.add(layers.Dropout(rate=hparams['dropout']))
-        model.add(layers.Dense(output_shape[0], dtype='float32'))
+        model.add(layers.Dense(num_targets, dtype='float32'))
         model.add(layers.Lambda(lambda x: tf.pad(
             x, [[0, 0], [0, num_pad_targets]])))
         model.compile(
@@ -220,7 +221,7 @@ def run_mixed(dataset, target, pad_target, model_version):
         print(log_dir)
 
         x_train, y_train, x_val, y_val, _, _ = data.get_datasets(
-            dataset=dataset, target=target, scale_x=True, scale_y=True)
+            dataset=dataset, target=target, scale_x=True, scale_y=True, pad_target=pad_target)
         train.random_search(build_fn=make_mixed_model_build_fn(dataset, target, pad_target, mix_weight), x=x_train, y=y_train,
                             x_val=x_val, y_val=y_val, n=60, hp_rv=hp_rv, log_dir=log_dir)
 
