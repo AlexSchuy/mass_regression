@@ -354,7 +354,7 @@ def train_test_model(build_fn, x, y, x_val, y_val, hparams, log_dir, loss_fn, op
         else:
             model.fit([x, y], epochs=epochs, batch_size=batch_size, callbacks=[
                 tf.keras.callbacks.TensorBoard(str(log_dir)), hp.KerasCallback(str(log_dir), hparams)])
-        val_loss, _, _, _ = model.evaluate(x_val, y_val)
+        val_loss = model.evaluate([x_val, y_val])
 
     return model, val_loss
 
@@ -374,7 +374,7 @@ def random_search(build_fn, x, y, x_val, y_val, n, hp_rv, log_dir, loss_fn=None,
             if loss < best_loss:
                 best_model = model
                 best_loss = loss
-                best_model.save(str(log_dir / 'best_model.h5'))
+                best_model.save(str(log_dir / 'best_model'), save_format='tf')
 
 
 def set_seed(seed):
