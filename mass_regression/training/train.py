@@ -2,6 +2,7 @@
 
 These routines handle training the ML models that are studied (quantum and classical for comparison).
 """
+import json
 import math
 import os
 import shutil
@@ -374,7 +375,10 @@ def random_search(build_fn, x, y, x_val, y_val, n, hp_rv, log_dir, loss_fn=None,
             if loss < best_loss:
                 best_model = model
                 best_loss = loss
-                best_model.save(str(log_dir / 'best_model'), save_format='tf')
+                best_model.save_weights(str(log_dir / 'best_model'), save_format='tf')
+                with (log_dir / 'best_hparams.json').open('w') as f:
+                    json.dump(hparams, f)
+
 
 
 def set_seed(seed):
@@ -415,7 +419,7 @@ def run_unmixed(dataset, target, model_version, seed=None):
 
 def get_mixed_log_dir(dataset, target, pad_target, model_version, mix_weight):
     return definitions.LOG_DIR / dataset / f'{target}-{pad_target}-mixed_{model_version}-w{mix_weight}'
-
+        
 
 def run_mixed(dataset, target, pad_target, model_version, seed=None, mixed=True):
     set_seed(seed)
@@ -457,8 +461,24 @@ def run_mixed(dataset, target, pad_target, model_version, seed=None, mixed=True)
         train.random_search(build_fn=build_fn,
                             loss_fn=loss_fn, optimizer_fn=optimizer_fn, metrics_fn=metrics_fn,
                             x=x_train.to_numpy(), y=y_train.to_numpy(), x_val=x_val.to_numpy(), y_val=y_val.to_numpy(),
-                            n=1, hp_rv=hp_rv, log_dir=log_dir, concat_input=concat_input)
+                            n=20, hp_rv=hp_rv, log_dir=log_dir, concat_input=concat_input)
 
+
+def load_model(model_version, dataset, target, input_shape, output_shape, pad_target=None, mix_weight=None):
+    if mix_weight is not None:
+        log_dir = train.get_mixed_log_dir(dataset, target, pad_target, model_version, mix_weight=0.0)
+        print(log_dir)
+        with (log_dir / 'best_hparams.json').open() as f:
+            hparams = json.load(f)
+        if model_version == 'v1':
+            build_fn = make_mixed_model_build_fn(dataset, target, pad_target, mix_weight)
+        elif model_version == 'v2':
+            build_fn = make_mixed_model_build_fn_v2(dataset, target, pad_target, mix_weight, mixed=True)
+    else:
+        pass
+    model = build_fn(hparams, input_shape, output_shape)
+    model.load_weights(str(log_dir / 'best_model'))
+    return model
 
 def main():
     dataset = 'H125'
