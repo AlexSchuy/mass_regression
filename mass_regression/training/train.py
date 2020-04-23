@@ -466,7 +466,7 @@ def run_mixed(dataset, target, pad_target, model_version, seed=None, mixed=True)
 
 def load_model(model_version, dataset, target, input_shape, output_shape, pad_target=None, mix_weight=None):
     if mix_weight is not None:
-        log_dir = train.get_mixed_log_dir(dataset, target, pad_target, model_version, mix_weight=0.0)
+        log_dir = train.get_mixed_log_dir(dataset, target, pad_target, model_version, mix_weight=mix_weight)
         print(log_dir)
         with (log_dir / 'best_hparams.json').open() as f:
             hparams = json.load(f)
