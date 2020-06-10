@@ -121,21 +121,36 @@ def get_num_pad_targets(dataset, pad_target):
     return len(definitions.PAD_TARGETS[dataset][pad_target])
 
 
-def get_scale_funcs(dataset, target, pad_target):
-    _, padded_y, _, _, _, _ = get_datasets(
-        dataset=dataset, target=target, pad_target=pad_target)
-    num_targets = get_num_targets(dataset, target)
-    y = padded_y.iloc[:, :num_targets]
-    y_pad = padded_y.iloc[:, num_targets:]
+def get_scale_funcs(dataset, target, pad_target=None):
+    if pad_target:
+        x, padded_y, _, _, _, _ = get_datasets(
+            dataset=dataset, target=target, pad_target=pad_target)
+        num_targets = get_num_targets(dataset, target)
+        y = padded_y.iloc[:, :num_targets]
+        y_pad = padded_y.iloc[:, num_targets:]
+        y_pad_mean = np.mean(y_pad).values
+        y_pad_std = np.std(y_pad).values
+
+        def scale_y_pad(Y_pad):
+            return (Y_pad - y_pad_mean) / y_pad_std
+    else:
+        x, y, _, _, _, _ = get_datasets(
+            dataset=dataset, target=target)
+
     y_mean = np.mean(y).values
     y_std = np.std(y).values
-    y_pad_mean = np.mean(y_pad).values
-    y_pad_std = np.std(y_pad).values
-
-    def scale_y_pad(Y_pad):
-        return (Y_pad - y_pad_mean) / y_pad_std
+    x_mean = np.mean(x).values
+    x_std = np.std(x).values
 
     def unscale_y(Y):
         return Y * y_std + y_mean
 
-    return scale_y_pad, unscale_y
+    def unscale_x(X):
+        return X * x_std + x_mean
+
+    if not pad_target:
+        def scale_y(Y):
+            return (Y - y_mean) / y_std
+        return scale_y, unscale_y, unscale_x
+    else:
+        return scale_y_pad, unscale_y, unscale_x

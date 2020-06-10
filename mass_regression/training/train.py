@@ -65,7 +65,7 @@ class MixedLoss():
             self.calc_pad = calc_Wm
         else:
             raise NotImplementedError()
-        scale_y_pad, unscale_y = data.get_scale_funcs(
+        scale_y_pad, unscale_y, _ = data.get_scale_funcs(
             dataset, target, pad_target)
         self.num_targets = data.get_num_targets(dataset, target)
         self.scale_y_pad = scale_y_pad
@@ -92,12 +92,13 @@ class MixedLossV2():
             self.calc_pad = calc_Wm
         else:
             raise NotImplementedError()
-        scale_y_pad, unscale_y = data.get_scale_funcs(
+        scale_y_pad, unscale_y, unscale_x = data.get_scale_funcs(
             dataset, target, pad_target)
         self.x = x
         self.num_targets = data.get_num_targets(dataset, target)
         self.scale_y_pad = scale_y_pad
         self.unscale_y = unscale_y
+        self.unscale_x = unscale_x
         self.mix_weight = mix_weight
         self.mse = tf.keras.losses.MeanSquaredError()
         self.mixed = mixed  # testing parameter
@@ -110,7 +111,7 @@ class MixedLossV2():
         else:
             y_true_pad = padded_y_true[:, self.num_targets:]
             y_pred_pad = self.scale_y_pad(
-                self.calc_pad(self.x, self.unscale_y(y_pred)))
+                self.calc_pad(self.unscale_x(self.x), self.unscale_y(y_pred)))
             return self.mse(y_true, y_pred) + self.mix_weight * self.mse(y_true_pad, y_pred_pad)
 
 
@@ -194,6 +195,28 @@ def build_unmixed_model(hparams, input_shape, output_shape, seed=None):
         metrics=[MeanAbsolutePercentageError(), MeanAbsoluteError(), RootMeanSquaredError()])
     print(model.summary())
     return model
+
+def make_custom_loss_unmixed_model_build_fn(dataset, target, loss):
+    num_targets = data.get_num_targets(dataset, target)
+    def build_model(hparams, input_shape, output_shape, seed=None):
+        x = tf.keras.layers.Input(shape=input_shape)
+        i = layers.Dense(units=hparams['num_units'],
+                        activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01), input_shape=input_shape)(x)
+        i = layers.Dropout(rate=hparams['dropout'], seed=seed)(i)
+        for _ in range(hparams['num_layers'] - 1):
+            i = layers.Dense(units=hparams['num_units'],
+                            activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01))(i)
+            i = layers.Dropout(rate=hparams['dropout'], seed=seed)(i)
+        y_pred = layers.Dense(output_shape[0], dtype='float32')(i)
+        y_true = layers.Input(num_targets)
+        model = tf.keras.models.Model(inputs=[x, y_true], outputs=y_pred)
+        model.add_loss(loss(x, dataset, target)(y_true, y_pred))
+        model.compile(
+            optimizer=keras.optimizers.Adam(
+                hparams['learning_rate']))
+        print(model.summary())
+        return model
+    return build_model
 
 
 def make_mixed_model_build_fn(dataset, target, pad_target, mix_weight):
@@ -375,10 +398,10 @@ def random_search(build_fn, x, y, x_val, y_val, n, hp_rv, log_dir, loss_fn=None,
             if loss < best_loss:
                 best_model = model
                 best_loss = loss
-                best_model.save_weights(str(log_dir / 'best_model'), save_format='tf')
+                best_model.save_weights(
+                    str(log_dir / 'best_model'), save_format='tf')
                 with (log_dir / 'best_hparams.json').open('w') as f:
                     json.dump(hparams, f)
-
 
 
 def set_seed(seed):
@@ -419,11 +442,11 @@ def run_unmixed(dataset, target, model_version, seed=None):
 
 def get_mixed_log_dir(dataset, target, pad_target, model_version, mix_weight):
     return definitions.LOG_DIR / dataset / f'{target}-{pad_target}-mixed_{model_version}-w{mix_weight}'
-        
+
 
 def run_mixed(dataset, target, pad_target, model_version, seed=None, mixed=True):
     set_seed(seed)
-    for mix_weight in (0.0, 1.0, 10.0):
+    for mix_weight in (1.0, 10.0):
         log_dir = get_mixed_log_dir(
             dataset, target, pad_target, model_version, mix_weight)
         shutil.rmtree(log_dir, ignore_errors=True)
@@ -461,24 +484,28 @@ def run_mixed(dataset, target, pad_target, model_version, seed=None, mixed=True)
         train.random_search(build_fn=build_fn,
                             loss_fn=loss_fn, optimizer_fn=optimizer_fn, metrics_fn=metrics_fn,
                             x=x_train.to_numpy(), y=y_train.to_numpy(), x_val=x_val.to_numpy(), y_val=y_val.to_numpy(),
-                            n=20, hp_rv=hp_rv, log_dir=log_dir, concat_input=concat_input)
+                            n=4, hp_rv=hp_rv, log_dir=log_dir, concat_input=concat_input)
 
 
 def load_model(model_version, dataset, target, input_shape, output_shape, pad_target=None, mix_weight=None):
     if mix_weight is not None:
-        log_dir = train.get_mixed_log_dir(dataset, target, pad_target, model_version, mix_weight=mix_weight)
+        log_dir = train.get_mixed_log_dir(
+            dataset, target, pad_target, model_version, mix_weight=mix_weight)
         print(log_dir)
         with (log_dir / 'best_hparams.json').open() as f:
             hparams = json.load(f)
         if model_version == 'v1':
-            build_fn = make_mixed_model_build_fn(dataset, target, pad_target, mix_weight)
+            build_fn = make_mixed_model_build_fn(
+                dataset, target, pad_target, mix_weight)
         elif model_version == 'v2':
-            build_fn = make_mixed_model_build_fn_v2(dataset, target, pad_target, mix_weight, mixed=True)
+            build_fn = make_mixed_model_build_fn_v2(
+                dataset, target, pad_target, mix_weight, mixed=True)
     else:
         pass
     model = build_fn(hparams, input_shape, output_shape)
     model.load_weights(str(log_dir / 'best_model'))
     return model
+
 
 def main():
     dataset = 'H125'
@@ -488,7 +515,8 @@ def main():
     mixed_model_version = 'v2'
     seed = 5
     mixed = True
-    use_mixed = True # debug variable to compare timing using custom loss function with (mixed=true) and without (mixed=false) W_mass calculations.
+    # debug variable to compare timing using custom loss function with (mixed=true) and without (mixed=false) W_mass calculations.
+    use_mixed = True
 
     if not mixed:
         run_unmixed(dataset, target, unmixed_model_version, seed)

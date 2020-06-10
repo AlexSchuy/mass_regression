@@ -7,7 +7,6 @@ import progressbar
 import tensorflow as tf
 
 import definitions
-from common import utils
 from sklearn.model_selection import train_test_split
 
 def calc_num_events(filepath, lines_per_event):
@@ -143,6 +142,9 @@ def main():
         if not pickle_path.exists():
             df = convert_Wlnu(input_filepath)
             df.to_pickle(pickle_path)
+        df = pd.read_pickle(pickle_path)
+        df['Lm_gen'] = 0.0
+        df.to_pickle(pickle_path)
         n_train = 80000
         n_val = 10000
         n_test = 10000
