@@ -26,7 +26,7 @@ class BaseDataset():
         return len(self.targets)
     
     def num_pad_features(self):
-        if self.pad_features:
+        if self.pad_features is not None:
             return len(self.pad_features)
         else:
             return 0
@@ -64,13 +64,13 @@ class BaseDataset():
         y = df[self.targets]
         if scale_y:
             y = self.scale_y(y)
-        if self.pad_features:
+        if self.pad_features is not None:
             x_pad = df[self.pad_features]
             if scale_x_pad:
                 x_pad = self.scale_x_pad(x_pad)
             return x, x_pad, y
         else:
-            return x, None, y 
+            return x, None, y
 
     def _load(self, data_path):
         def get_data(t):
@@ -85,7 +85,7 @@ class BaseDataset():
         self.x_std = np.std(x_train).values
         self.y_mean = np.mean(y_train).values
         self.y_std = np.std(y_train).values
-        if x_pad_train:
+        if x_pad_train is not None:
             self.x_pad_mean = np.mean(x_pad_train).values
             self.x_pad_std = np.std(x_pad_train).values
         self.df_val = get_data('val')

@@ -44,6 +44,7 @@ def Wm_loss(x, x_pad, y_true, y_pred, dataset):
 
 class WlnuDataset(BaseDataset):
     def __init__(self, features=definitions.FEATURES['Wlnu'], targets='nu', pad_features=None):
+        targets = definitions.TARGETS['Wlnu'][targets]
         super().__init__(definitions.SAMPLES_DIR / 'Wlnu',
                          features, targets, pad_features, name='Wlnu')
 
@@ -76,7 +77,7 @@ class WlnuCallback(tf.keras.callbacks.Callback):
 
 def main():
     wlnu_dataset = WlnuDataset(pad_features='Wm_gen')
-    df_train, _, _ = wlnu_dataset.train(split=False)
+    df_train = wlnu_dataset.train(split=False)
     x = tf.constant(
         df_train[['METx', 'METy', 'Lx_reco', 'Ly_reco', 'Lz_reco', 'Lm_reco']].values)
     y = tf.constant(df_train[['NUz_gen']].values)
