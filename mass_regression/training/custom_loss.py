@@ -3,13 +3,8 @@ class CustomLoss():
         self.loss_fn = loss_fn
         self.dataset = dataset
         self.x = x
-        self.num_targets = data.get_num_targets(dataset, target)
-        self.scale_y_pad = scale_y_pad
-        self.unscale_y = unscale_y
-        self.unscale_x = unscale_x
-        self.mix_weight = mix_weight
-        self.mse = tf.keras.losses.MeanSquaredError()
-        self.mixed = mixed  # testing parameter
+        self.x_pad = x_pad
+        self.num_targets = dataset.num_targets()
 
     def __call__(self, y_true, y_pred):
-        return self.loss_fn(x, x_pad, y_true, y_pred, dataset)
+        return self.loss_fn(self.x, self.x_pad, y_true, y_pred, self.dataset)

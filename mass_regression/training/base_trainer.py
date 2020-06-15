@@ -3,16 +3,25 @@ import json
 import tensorflow as tf
 from tensorboard.plugins.hparams import api as hp
 
+import definitions
+
 
 class BaseTrainer():
 
-    def __init__(self, model, dataset, log_dir, concat_input=False):
+    def __init__(self, model, dataset, log_dir=None, concat_input=False, early_stopping=False):
         self.model = model
         self.dataset = dataset
-        self.log_dir = log_dir
+        if log_dir is None:
+            log_dir = f'{self.dataset.name}/{self.model.name}'
+        self.log_dir = definitions.LOG_DIR / log_dir
         self.concat_input = concat_input
+        self.callbacks = []
+        if early_stopping:
+            raise NotImplementedError('Issue with validation data for model with custom inputs.')
+            self.callbacks.append(
+                tf.keras.callbacks.EarlyStopping(patience=10, verbose=1))
 
-    def random_search(self):
+    def random_search(self, n, hp_rv):
         best_model = None
         best_loss = float('Inf')
         for i in range(n):
@@ -41,14 +50,16 @@ class BaseTrainer():
             batch_size = hparams['batch_size']
         else:
             batch_size = 32
-        x, y = self.dataset.train()
-        x_val, y_val = self.dataset.val()
+        x, x_pad, y = self.dataset.train()
+        x_val, x_pad_val, y_val = self.dataset.val()
+        callbacks = self.callbacks + [
+            tf.keras.callbacks.TensorBoard(str(self.log_dir)), hp.KerasCallback(str(self.log_dir), hparams)]
         if not self.concat_input:
-            model.fit(x, y, epochs=epochs, batch_size=batch_size, validation_data=(x_val, y_val), callbacks=[
-                tf.keras.callbacks.TensorBoard(str(self.log_dir)), hp.KerasCallback(str(self.log_dir), hparams)])
+            assert x_pad is None and x_pad_val is None
+            model.fit(x, y, epochs=epochs, batch_size=batch_size, validation_data=(
+                x_val, y_val, x_pad_val), callbacks=callbacks)
         else:
-            model.fit([x, y], epochs=epochs, batch_size=batch_size, callbacks=[
-                tf.keras.callbacks.TensorBoard(str(self.log_dir)), hp.KerasCallback(str(self.log_dir), hparams)])
-        val_loss = model.evaluate([x_val, y_val])
+            model.fit((x, x_pad, y), epochs=epochs, batch_size=batch_size, callbacks=callbacks)
+        val_loss = model.evaluate((x_val, x_pad_val, y_val))
 
         return model, val_loss

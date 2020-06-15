@@ -5,14 +5,19 @@ import definitions
 
 
 class BaseDataset():
-    def __init__(self, data_path, features, targets, pad_features=None):
+    def __init__(self, data_path, features, targets, pad_features=None, name='Base'):
+        self.name = name
         self.features = features
+        if type(targets) is str:
+            targets = [targets]
         self.targets = targets
+        if type(pad_features) is str:
+            pad_features = [pad_features]
         self.pad_features = pad_features
         self.df_train = None
         self.df_val = None
         self.df_test = None
-        self.load(data_path)
+        self._load(data_path)
 
     def num_features(self):
         return len(self.features)
@@ -63,18 +68,19 @@ class BaseDataset():
             x_pad = df[self.pad_features]
             if scale_x_pad:
                 x_pad = self.scale_x_pad(x_pad)
-            return x, y, x_pad
+            return x, x_pad, y
         else:
-            return x, y, None
+            return x, None, y 
 
-    def load(self, data_path):
+    def _load(self, data_path):
         def get_data(t):
             path = data_path / f'{t}.pkl'
             data = pd.read_pickle(path)
             return data
 
         self.df_train = get_data('train')
-        x_train, y_train, x_pad_train = self._split(self.df_train)
+        x_train, x_pad_train, y_train = self._split(self.df_train)
+        self.num_training_samples = y_train.shape[0]
         self.x_mean = np.mean(x_train).values
         self.x_std = np.std(x_train).values
         self.y_mean = np.mean(y_train).values
@@ -85,7 +91,7 @@ class BaseDataset():
         self.df_val = get_data('val')
         self.df_test = get_data('test')
 
-    def _get(self, df, split=True, scale_x=False, scale_y=False, scale_x_pad=False):
+    def _get(self, df, split=True, scale_x=True, scale_y=True, scale_x_pad=False):
         assert not split or not (
             scale_x or scale_y or scale_x_pad), "Cannot scale data without splitting."
         if split:
@@ -93,11 +99,11 @@ class BaseDataset():
         else:
             return df
 
-    def train(self, split=True, scale_x=False, scale_y=False, scale_x_pad=False):
+    def train(self, split=True, scale_x=True, scale_y=True, scale_x_pad=False):
         return self._get(self.df_train, split, scale_x, scale_y, scale_x_pad)
 
-    def val(self, split=True, scale_x=False, scale_y=False, scale_x_pad=False):
+    def val(self, split=True, scale_x=True, scale_y=True, scale_x_pad=False):
         return self._get(self.df_val, split, scale_x, scale_y, scale_x_pad)
 
-    def test(self, split=True, scale_x=False, scale_y=False, scale_x_pad=False):
+    def test(self, split=True, scale_x=True, scale_y=True, scale_x_pad=False):
         return self._get(self.df_test, split, scale_x, scale_y, scale_x_pad)
