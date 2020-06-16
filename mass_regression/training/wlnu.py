@@ -4,19 +4,16 @@ import tensorflow as tf
 import data
 import definitions
 from base_dataset import BaseDataset
+from base_trainer import BaseTrainer
+from custom_loss import CustomLoss
 
 mse = tf.keras.losses.MeanSquaredError()
 
 
 def df_calc_Wm(df, NUz_reco):
-    NUE_reco = (df['NUx_reco']**2 + df['NUy_reco']**2 + NUz_reco**2)**0.5
-    LE_reco = (df['Lx_reco']**2 + df['Ly_reco']**2 +
-               df['Lz_reco']**2 + df['Lm_reco']**2)**0.5
-    WE_reco = NUE_reco + LE_reco
-    Wz_reco = df['Lz_reco'] + NUz_reco
-    Wm_reco = (WE_reco**2 - df['Wx_reco']**2 -
-               df['Wy_reco']**2 - Wz_reco**2)**0.5
-    return Wm_reco
+    x = df[definitions.FEATURES['Wlnu']].values
+    y_pred = NUz_reco.values
+    return calc_Wm(x, y_pred)
 
 
 def calc_Wm(x, y_pred):
@@ -35,21 +32,45 @@ def calc_Wm(x, y_pred):
     return Wm_pred
 
 
+def Nz_loss(x, x_pad, y_true, y_pred, dataset):
+    raise NotImplementedError()
+
+
 def Wm_loss(x, x_pad, y_true, y_pred, dataset):
-    Wm_pred = dataset.scale_x_pad(
-        calc_Wm(dataset.unscale_x(x), dataset.unscale_y(y_pred)))
+    Wm_pred = dataset.scale_x_pad(calc_Wm(dataset.unscale_x(x), dataset.unscale_y(y_pred)))
     Wm_true = x_pad[:, 0]
     return mse(Wm_true, Wm_pred)
 
 
+class WmLoss(CustomLoss):
+    name = 'Wm_loss'
+
+    def __init__(self, x, x_pad, dataset):
+        super().__init__(x, x_pad, dataset, name=self.name)
+
+    def loss_fn(self, y_true, y_pred):
+        return Wm_loss(self.x, self.x_pad, y_true, y_pred, self.dataset)
+
+
+class NzLoss(CustomLoss):
+    def __init__(self, x, x_pad, dataset):
+        super().__init__(x, x_pad, dataset, name='Nz_loss')
+
+    def loss_fn(self, y_true, y_pred):
+        return Nz_loss(self.x, self.x_pad, y_true, y_pred, self.dataset)
+
+
 class WlnuDataset(BaseDataset):
-    def __init__(self, features=definitions.FEATURES['Wlnu'], targets='nu', pad_features=None):
-        targets = definitions.TARGETS['Wlnu'][targets]
+    def __init__(self, features=definitions.FEATURES['Wlnu'], target_name='nu', pad_features=None):
         super().__init__(definitions.SAMPLES_DIR / 'Wlnu',
-                         features, targets, pad_features, name='Wlnu')
+                         features, target_name, pad_features, name='Wlnu')
+
+    @property
+    def targets(self):
+        return definitions.TARGETS['Wlnu'][self.target_name]
 
 
-class WlnuCallback(tf.keras.callbacks.Callback):
+class DeltaCallback(tf.keras.callbacks.Callback):
     def __init__(self, dataset, log_dir):
         self.dataset = dataset
         self.log_dir = log_dir
@@ -57,32 +78,51 @@ class WlnuCallback(tf.keras.callbacks.Callback):
     def on_train_begin(self, logs=None):
         epochs = self.params['epochs']
         num_samples = self.dataset.num_training_samples
-        self.delta_Wm = np.zeros((epochs, num_samples))
-        self.delta_NUz = np.zeros((epochs, num_samples))
+        self.delta_Wm_train = np.zeros((epochs, num_samples))
+        self.delta_NUz_train = np.zeros((epochs, num_samples))
+        self.delta_Wm_val = np.zeros((epochs, num_samples))
+        self.delta_NUz_val = np.zeros((epochs, num_samples))
 
     def on_train_end(self, logs=None):
         def _save(file_name, array):
             np.save(self.log_dir / file_name, array)
-        _save('delta_Wm.npy', self.delta_Wm)
-        _save('delta_NUz.npy', self.delta_NUz)
+        _save('delta_Wm_train.npy', self.delta_Wm_train)
+        _save('delta_NUz_train.npy', self.delta_NUz_train)
+        _save('delta_Wm_val.npy', self.delta_Wm_val)
+        _save('delta_NUz_val.npy', self.delta_NUz_val)
 
     def on_epoch_end(self, epoch, logs=None):
-        x, x_pad, y_true = self.dataset.train(scale_x=False, scale_y=False)
-        y_pred = self.dataset.unscale_y(self.model.predict(x))
-        Wm_pred = calc_Wm(x, y_pred)
-        Wm_true = x_pad[:, 0]
-        self.delta_Wm[epoch, :] = (Wm_pred - Wm_true)
-        self.delta_NUz[epoch, :] = (y_pred - y_true)
+        def calc_delta(x, x_pad, y):
+            y_pred = self.dataset.unscale_y(
+                self.model.predict(self.dataset.scale_x(x)))
+            Wm_pred = calc_Wm(x, y_pred)
+            Wm_true = x_pad[:, 0]
+            return Wm_pred - Wm_true, y_pred - y
+        x_train, x_pad_train, y_train = self.dataset.train(scale_x=False, scale_y=False, scale_x_pad=False)
+        self.delta_Wm_train[epoch, :], self.delta_NUz_train[epoch, :] = calc_delta(x_train, x_pad_train, y_train)
+        x_val, x_pad_val, y_val = self.dataset.val(scale_x=False, scale_y=False, scale_x_pad=False)
+        self.delta_Wm_val[epoch, :], self.delta_NUz_val[epoch, :] = calc_delta(x_val, x_pad_val, y_val)
+
+
+class WlnuTrainer(BaseTrainer):
+    def __init__(self, model_factory, dataset, log_dir=None, early_stopping=False, delta_callback=True):
+        super().__init__(model_factory, dataset, log_dir, early_stopping, callbacks=None)
+        if delta_callback:
+            self.callbacks.append(DeltaCallback(dataset, self.log_dir / 'deltas'))
+        
 
 
 def main():
     wlnu_dataset = WlnuDataset(pad_features='Wm_gen')
     df_train = wlnu_dataset.train(split=False)
-    x = tf.constant(
-        df_train[['METx', 'METy', 'Lx_reco', 'Ly_reco', 'Lz_reco', 'Lm_reco']].values)
-    y = tf.constant(df_train[['NUz_gen']].values)
+    x = df_train[['METx', 'METy', 'Lx_reco',
+                  'Ly_reco', 'Lz_reco', 'Lm_reco']].values
+    y = df_train[['NUz_gen']].values
     Wm_pred = calc_Wm(x, y)
-    print(tf.constant(df_train['Wm_gen'].values) - Wm_pred)
+    print((df_train['Wm_gen'].values - Wm_pred) / df_train['Wm_gen'].values)
+
+    Wm_pred = df_calc_Wm(df_train, df_train[['NUz_gen']])
+    print((df_train['Wm_gen'].values - Wm_pred) / df_train['Wm_gen'].values)
 
 
 if __name__ == '__main__':

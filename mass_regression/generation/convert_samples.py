@@ -5,9 +5,10 @@ import numpy as np
 import pandas as pd
 import progressbar
 import tensorflow as tf
+from sklearn.model_selection import train_test_split
 
 import definitions
-from sklearn.model_selection import train_test_split
+
 
 def calc_num_events(filepath, lines_per_event):
     num_lines = 1

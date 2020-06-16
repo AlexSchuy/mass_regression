@@ -2,39 +2,23 @@
 
 These routines handle training the ML models that are studied (quantum and classical for comparison).
 """
-import json
-import math
-import os
-import shutil
-import time
 
-import altair as alt
+
+from argparse import ArgumentParser
+
 import numpy as np
-import pandas as pd
 import tensorflow as tf
 from scipy.stats.distributions import randint
-from tensorboard.plugins.hparams import api as hp
-from tensorflow import keras
-from tensorflow.keras import layers  # pylint: disable=import-error
-from tensorflow.keras.losses import MSE  # pylint: disable=import-error
-from tensorflow.keras.metrics import \
-    MeanAbsoluteError  # pylint: disable=import-error
-from tensorflow.keras.metrics import \
-    MeanAbsolutePercentageError  # pylint: disable=import-error
-from tensorflow.keras.metrics import \
-    RootMeanSquaredError  # pylint: disable=import-error
-from tensorflow.keras.mixed_precision import experimental as mixed_precision  # pylint: disable=import-error
 
 import definitions
 import training.wlnu as wlnu
 from training import data, train
-from training.base_trainer import BaseTrainer
 from training.loguniform import LogUniform
-from training.models.model_v1 import Model_V1
+from training.models.model_v1_factory import Model_V1_Factory
 from training.steploguniform import StepLogUniform
 from training.stepuniform import StepUniform
-from training.wlnu import WlnuDataset
-
+from training.wlnu import WlnuDataset, WlnuTrainer
+from training.constant import Constant
 
 def calc_Wm(x, y_pred):
     METx = x[:, 0]
@@ -68,13 +52,13 @@ def set_seed(seed):
 
 
 def main():
-    from argparse import ArgumentParser
+
     parser = ArgumentParser()
     parser.add_argument('dataset', choices=definitions.DATASETS)
     parser.add_argument('target')
 
     dataset = 'Wlnu'
-    target = 'nu'
+    target_name = 'nu'
     pad_features = 'Wm_gen'
     seed = 5
     set_seed(seed)
@@ -82,12 +66,12 @@ def main():
              'num_units': StepUniform(start=10, num=20, step=10),
              'learning_rate': LogUniform(loc=-5, scale=4, base=10, discrete=False),
              'batch_size': StepLogUniform(start=5, num=4, step=1, base=2),
-             'epochs': randint(10, 201),
+             'epochs': Constant(1000),
              'dropout': StepUniform(start=0.0, num=2, step=0.5)}
     dataset = WlnuDataset(
-        definitions.FEATURES['Wlnu'], targets=target, pad_features=pad_features)
-    model = Model_V1(dataset, wlnu.Wm_loss, seed=seed)
-    trainer = BaseTrainer(model, dataset, concat_input=True)
+        definitions.FEATURES['Wlnu'], target_name=target_name, pad_features=pad_features)
+    model_factory = Model_V1_Factory(dataset, wlnu.WmLoss, seed=seed)
+    trainer = WlnuTrainer(model_factory, dataset, delta_callback=False, early_stopping=True)
     trainer.random_search(20, hp_rv)
 
 

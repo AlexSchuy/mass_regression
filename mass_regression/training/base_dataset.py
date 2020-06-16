@@ -5,12 +5,10 @@ import definitions
 
 
 class BaseDataset():
-    def __init__(self, data_path, features, targets, pad_features=None, name='Base'):
+    def __init__(self, data_path, features, target_name, pad_features=None, name='Base'):
         self.name = name
         self.features = features
-        if type(targets) is str:
-            targets = [targets]
-        self.targets = targets
+        self.target_name = target_name
         if type(pad_features) is str:
             pad_features = [pad_features]
         self.pad_features = pad_features
@@ -19,12 +17,19 @@ class BaseDataset():
         self.df_test = None
         self._load(data_path)
 
+    @property 
+    def targets(self):
+        raise NotImplementedError()
+
+    @property
     def num_features(self):
         return len(self.features)
 
+    @property
     def num_targets(self):
         return len(self.targets)
     
+    @property
     def num_pad_features(self):
         if self.pad_features is not None:
             return len(self.pad_features)
@@ -91,19 +96,17 @@ class BaseDataset():
         self.df_val = get_data('val')
         self.df_test = get_data('test')
 
-    def _get(self, df, split=True, scale_x=True, scale_y=True, scale_x_pad=False):
-        assert not split or not (
-            scale_x or scale_y or scale_x_pad), "Cannot scale data without splitting."
+    def _get(self, df, split=True, scale_x=True, scale_y=True, scale_x_pad=True):
         if split:
             return self._split(df, scale_x, scale_y, scale_x_pad)
         else:
             return df
 
-    def train(self, split=True, scale_x=True, scale_y=True, scale_x_pad=False):
+    def train(self, split=True, scale_x=True, scale_y=True, scale_x_pad=True):
         return self._get(self.df_train, split, scale_x, scale_y, scale_x_pad)
 
-    def val(self, split=True, scale_x=True, scale_y=True, scale_x_pad=False):
+    def val(self, split=True, scale_x=True, scale_y=True, scale_x_pad=True):
         return self._get(self.df_val, split, scale_x, scale_y, scale_x_pad)
 
-    def test(self, split=True, scale_x=True, scale_y=True, scale_x_pad=False):
+    def test(self, split=True, scale_x=True, scale_y=True, scale_x_pad=True):
         return self._get(self.df_test, split, scale_x, scale_y, scale_x_pad)
