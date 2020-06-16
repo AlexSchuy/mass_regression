@@ -73,6 +73,7 @@ class WlnuDataset(BaseDataset):
 class DeltaCallback(tf.keras.callbacks.Callback):
     def __init__(self, dataset, log_dir):
         self.dataset = dataset
+        log_dir.mkdir(parents=True, exist_ok=True)
         self.log_dir = log_dir
 
     def on_train_begin(self, logs=None):

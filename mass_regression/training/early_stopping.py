@@ -9,5 +9,4 @@ class EarlyStopping(tf.keras.callbacks.EarlyStopping):
     def get_monitor_value(self, logs):
         x_val, x_pad_val, y_val = self.dataset.val()
         val_loss = self.model.evaluate((x_val, x_pad_val, y_val))
-        print(f'val_loss = {val_loss}')
         return val_loss
