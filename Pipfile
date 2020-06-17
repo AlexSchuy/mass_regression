@@ -24,6 +24,7 @@ vega-datasets = "*"
 altair-data-server = "*"
 lorentz = "*"
 sympy = "*"
+plotly = "*"
 
 [requires]
 python_version = "3.7"

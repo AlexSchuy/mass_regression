@@ -1,10 +1,13 @@
 
+import json
+
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers  # pylint: disable=import-error
 
 from training.custom_loss import CustomLoss
 from training.models.base_model_factory import BaseModelFactory
+
 
 
 class Model_V1_Factory(BaseModelFactory):
@@ -30,6 +33,13 @@ class Model_V1_Factory(BaseModelFactory):
         model.compile(optimizer=keras.optimizers.Adam(hparams['learning_rate']))
         print(model.summary())
         return model
+
+    def load(self, run_dir):
+        with next(run_dir.glob('*.json')).open() as f:
+            hparams = json.load(f)
+        model = self.build(hparams)
+        model.load_weights(str(run_dir / 'model'))
+        return hparams, model
 
     @property
     def concatenated_input(self):

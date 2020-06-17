@@ -2,13 +2,13 @@ import numpy as np
 import tensorflow as tf
 from scipy.stats.distributions import randint
 
-import data
 import definitions
-from base_dataset import BaseDataset
-from base_parser import BaseParser
-from base_trainer import BaseTrainer
-from custom_loss import CustomLoss
+import training.data as data
+from training.base_dataset import BaseDataset
+from training.base_parser import BaseParser
+from training.base_trainer import BaseTrainer
 from training.constant import Constant
+from training.custom_loss import CustomLoss
 from training.loguniform import LogUniform
 from training.models.model_v1_factory import Model_V1_Factory
 from training.steploguniform import StepLogUniform
@@ -17,9 +17,8 @@ from training.stepuniform import StepUniform
 mse = tf.keras.losses.MeanSquaredError()
 
 
-def df_calc_Wm(df, NUz_reco):
+def df_calc_Wm(df, y_pred):
     x = df[definitions.FEATURES['Wlnu']].values
-    y_pred = NUz_reco.values
     return calc_Wm(x, y_pred)
 
 
@@ -70,7 +69,7 @@ class NUzLoss(CustomLoss):
 
 
 class WlnuDataset(BaseDataset):
-    def __init__(self, features=definitions.FEATURES['Wlnu'], target_name='nu', pad_features=None):
+    def __init__(self, features=definitions.FEATURES['Wlnu'], target_name='nu', pad_features='Wm_gen'):
         super().__init__(definitions.SAMPLES_DIR / 'Wlnu',
                          features, target_name, pad_features, name='Wlnu')
 
@@ -166,7 +165,7 @@ def main():
     Wm_pred = calc_Wm(x, y)
     print((df_train['Wm_gen'].values - Wm_pred) / df_train['Wm_gen'].values)
 
-    Wm_pred = df_calc_Wm(df_train, df_train[['NUz_gen']])
+    Wm_pred = df_calc_Wm(df_train, df_train[['NUz_gen']].values)
     print((df_train['Wm_gen'].values - Wm_pred) / df_train['Wm_gen'].values)
 
 
