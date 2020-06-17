@@ -22,8 +22,15 @@ class BaseTrainer():
         if early_stopping:
             self.callbacks.append(EarlyStopping(dataset=dataset, patience=10, restore_best_weights=True))
 
-    def random_search(self, n, hp_rv):
-        best_loss = float('Inf')
+    def random_search(self, n, hp_rv, hot_start=False):
+        save_dir = self.log_dir / 'best'
+        save_dir.mkdir(parents=True, exist_ok=True)
+        best_loss = float('inf')
+        if hot_start:
+            with (save_dir / 'best_hparams.json').open('r') as f:
+                hparams = json.load(f)
+            if 'best_loss' in hparams:
+                best_loss = hparams['best_loss']
         for i in range(n):
             run_name = f'run{i}'
             run_dir = self.log_dir / run_name
@@ -31,17 +38,15 @@ class BaseTrainer():
                 hparams = {k: v.rvs() for k, v in hp_rv.items()}
                 hparams['run_num'] = i
                 hp.hparams(hparams)
-                model, loss = self.train_test_model(hparams)
+                model, loss = self.train_test_model(hparams, run_dir)
                 if loss < best_loss:
                     best_loss = loss
-                    save_dir = self.log_dir / 'best'
-                    save_dir.mkdir(parents=True, exist_ok=True)
                     model.save_weights(
                         str(save_dir / 'best_model'), save_format='tf')
                     with (save_dir / 'best_hparams.json').open('w') as f:
                         json.dump(hparams, f)
 
-    def train_test_model(self, hparams):
+    def train_test_model(self, hparams, run_dir):
         model = self.model_factory.build(hparams)
         if 'epochs' in hparams:
             epochs = hparams['epochs']
@@ -62,5 +67,8 @@ class BaseTrainer():
         else:
             model.fit((x, x_pad, y), epochs=epochs, batch_size=batch_size, callbacks=callbacks)
         val_loss = model.evaluate((x_val, x_pad_val, y_val))
-
+        hparams['val_loss'] = val_loss
+        model.save_weights(str(run_dir / 'model'), save_format='tf')
+        with (run_dir / 'hparams.json').open('w') as f:
+            json.dump(hparams, f)
         return model, val_loss

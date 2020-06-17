@@ -86,6 +86,7 @@ class BaseDataset():
         self.df_train = get_data('train')
         x_train, x_pad_train, y_train = self._split(self.df_train)
         self.num_training_samples = y_train.shape[0]
+
         self.x_mean = np.mean(x_train).values
         self.x_std = np.std(x_train).values
         self.y_mean = np.mean(y_train).values
@@ -95,6 +96,8 @@ class BaseDataset():
             self.x_pad_std = np.std(x_pad_train).values
         self.df_val = get_data('val')
         self.df_test = get_data('test')
+        self.num_val_samples = self._split(self.df_val)[2].shape[0]
+        self.num_test_samples = self._split(self.df_test)[2].shape[0]
 
     def _get(self, df, split=True, scale_x=True, scale_y=True, scale_x_pad=True):
         if split:
