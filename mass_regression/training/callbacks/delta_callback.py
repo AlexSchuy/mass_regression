@@ -8,20 +8,13 @@ class DeltaCallback(tf.keras.callbacks.Callback):
         self.log_dir = log_dir
 
     def on_train_begin(self, logs=None):
-        epochs = self.params['epochs']
         self.delta = {}
-        self.delta_Wm_train = np.zeros((epochs, self.dataset.num_training_samples))
-        self.delta_NUz_train = np.zeros((epochs, self.dataset.num_training_samples))
-        self.delta_Wm_val = np.zeros((epochs, self.dataset.num_val_samples))
-        self.delta_NUz_val = np.zeros((epochs, self.dataset.num_val_samples))
 
     def on_train_end(self, logs=None):
         def _save(file_name, array):
             np.save(self.log_dir / file_name, array)
-        _save('delta_Wm_train.npy', self.delta_Wm_train)
-        _save('delta_NUz_train.npy', self.delta_NUz_train)
-        _save('delta_Wm_val.npy', self.delta_Wm_val)
-        _save('delta_NUz_val.npy', self.delta_NUz_val)
+        for variable in self.delta:
+            _save(f'delta_{variable}.npy', self.delta[variable])
 
     def on_epoch_end(self, epoch, logs=None):
         def calc_delta(get_data, suffix):

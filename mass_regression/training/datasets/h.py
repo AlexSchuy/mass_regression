@@ -146,10 +146,10 @@ class HiggsDataset(BaseDataset):
             tree['Nay'] = y_pred[:, 1]
             tree['Naz'] = y_pred[:, 2]
             tree['Nbz'] = y_pred[:, 3]
-            Wm = calc_Wm(x, y_pred)
+            Wm = calc_Wm(x.values, y_pred)
             tree['Wam'] = Wm[:, 0]
             tree['Wbm'] = Wm[:, 1]
-            tree['Hm'] = calc_Hm(x, y_pred)
+            tree['Hm'] = calc_Hm(x.values, y_pred)
         else:
             raise NotImplementedError()
         return tree
