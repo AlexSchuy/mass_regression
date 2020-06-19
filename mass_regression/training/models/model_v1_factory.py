@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers  # pylint: disable=import-error
 
-from training.custom_loss import CustomLoss
+from training.base.base_loss import BaseLoss
 from training.models.base_model_factory import BaseModelFactory
 
 

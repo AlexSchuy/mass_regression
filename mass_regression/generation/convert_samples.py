@@ -20,7 +20,7 @@ def calc_num_events(filepath, lines_per_event):
     return num_lines // lines_per_event
 
 
-def convert_H125(filepath):
+def convert_H(filepath):
     with open(filepath, 'r') as f:
         text = f.read()
         text = text.replace('VIS', '')
@@ -149,9 +149,9 @@ def main():
         n_train = 80000
         n_val = 10000
         n_test = 10000
-    elif dataset == 'H125':
+    elif dataset in ('H125', 'H400', 'H750', 'H1000', 'H1500'):
         if not pickle_path.exists():
-            df = convert_H125(input_filepath)
+            df = convert_H(input_filepath)
             df.to_pickle(pickle_path)
         n_train = 80000
         n_val = 10000
