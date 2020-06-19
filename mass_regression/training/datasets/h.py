@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 from scipy.stats.distributions import randint
 
@@ -72,8 +73,10 @@ def calc_Hm(x, y_pred):
         Nax_pred, Nay_pred, Naz_pred, Nam_pred, Lax_gen, Lay_gen, Laz_gen, Lam_gen)
     Wbx_pred, Wby_pred, Wbz_pred, Wbm_pred = data.add_fourvectors(
         Nbx_pred, Nby_pred, Nbz_pred, Nbm_pred, Lbx_gen, Lby_gen, Lbz_gen, Lbm_gen)
-    _, _, _, Hm_pred = data.add_fourvectors(Wax_pred, Way_pred, Waz_pred, Wam_pred, Wbx_pred, Wby_pred, Wbz_pred, Wbm_pred)
+    _, _, _, Hm_pred = data.add_fourvectors(Wax_pred, Way_pred, Waz_pred, Wam_pred,
+                                            Wbx_pred, Wby_pred, Wbz_pred, Wbm_pred)
     return Hm_pred
+
 
 def NUz_loss(x, x_pad, y_true, y_pred, dataset):
     return mse(y_true, y_pred)
@@ -130,6 +133,27 @@ class HiggsDataset(BaseDataset):
     def targets(self):
         return definitions.TARGETS['H'][self.target_name]
 
+    @property
+    def tree_gen(self):
+        gen_features = ['Nax_gen', 'Nay_gen', 'Naz_gen', 'Nbz_gen', 'Wam_gen', 'Wbm_gen', 'Hm_gen']
+        train_df = self.train(split=False)
+        return train_df[gen_features].rename(columns={k: k.replace('_gen', '') for k in gen_features})
+
+    def calculate_tree(self, x, y_pred):
+        tree = pd.DataFrame()
+        if self.target_name == 'nu':
+            tree['Nax'] = y_pred[:, 0]
+            tree['Nay'] = y_pred[:, 1]
+            tree['Naz'] = y_pred[:, 2]
+            tree['Nbz'] = y_pred[:, 3]
+            Wm = calc_Wm(x, y_pred)
+            tree['Wam'] = Wm[:, 0]
+            tree['Wbm'] = Wm[:, 1]
+            tree['Hm'] = calc_Hm(x, y_pred)
+        else:
+            raise NotImplementedError()
+        return tree
+
 
 class HiggsTrainer(BaseTrainer):
     def __init__(self, model_factory, dataset, log_dir=None, early_stopping=False, delta_callback=True):
@@ -151,10 +175,15 @@ class HiggsParser(BaseParser):
     def parse(self, args):
         super().parse(args)
         if args.loss == 'wm':
+            pad_features = ['Wam_gen', 'Wbm_gen']
             loss = WmLoss
         elif args.loss == 'nuz':
+            pad_features = ['Wam_gen', 'Wbm_gen']
             loss = NUzLoss
-        dataset = HiggsDataset(args.mass, definitions.FEATURES['H'], target_name=args.target_name)
+        elif args.loss == 'h':
+            pad_features = ['Hm_gen']
+            loss = HLoss
+        dataset = HiggsDataset(args.mass, definitions.FEATURES['H'], target_name=args.target_name, pad_features=pad_features)
         model_factory = Model_V1_Factory(dataset, loss, seed=args.seed)
         trainer = HiggsTrainer(model_factory, dataset, delta_callback=args.delta_callback,
                                early_stopping=not args.no_early_stopping)
@@ -186,7 +215,6 @@ def main():
     Wm_pred = df_calc_Wm(df_train, y)
     print((Wm_pred - x_pad) / x_pad)
 
-
     higgs_dataset = HiggsDataset(mass=400)
     df_train = higgs_dataset.train(split=False)
     x = df_train[definitions.FEATURES['H']].values
@@ -197,6 +225,7 @@ def main():
 
     Wm_pred = df_calc_Wm(df_train, y)
     print((Wm_pred - x_pad) / x_pad)
+
 
 if __name__ == '__main__':
     main()

@@ -79,6 +79,12 @@ class WlnuDataset(BaseDataset):
     def targets(self):
         return definitions.TARGETS['Wlnu'][self.target_name]
 
+    @property
+    def tree_gen(self):
+        gen_features = ['NUz_gen', 'Wm_gen']
+        train_df = self.train(split=False)
+        return train_df[gen_features].rename(columns={k: k.replace('_gen', '') for k in gen_features})
+
     def calculate_tree(self, x, y_pred):
         tree = pd.DataFrame()
         if self.target_name == 'nu':

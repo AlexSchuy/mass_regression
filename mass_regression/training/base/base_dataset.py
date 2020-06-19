@@ -36,6 +36,10 @@ class BaseDataset():
         else:
             return 0
 
+    @property
+    def tree_gen(self):
+        raise NotImplementedError()
+
     @staticmethod
     def _scale(A, mean, std):
         return (A - mean) / std
@@ -113,3 +117,6 @@ class BaseDataset():
 
     def test(self, split=True, scale_x=True, scale_y=True, scale_x_pad=True):
         return self._get(self.df_test, split, scale_x, scale_y, scale_x_pad)
+
+    def calculate_tree(self, x, y_pred):
+        raise NotImplementedError()
