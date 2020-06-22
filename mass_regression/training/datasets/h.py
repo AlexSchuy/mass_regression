@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -23,6 +25,9 @@ def df_calc_Wm(df, y_pred):
     x = df[definitions.FEATURES['H']].values
     return calc_Wm(x, y_pred)
 
+def df_calc_Hm(df, y_pred):
+    x = df[definitions.FEATURES['H']].values
+    return calc_Hm(x, y_pred)
 
 def calc_Wm(x, y_pred):
     METx = x[:, 0]
@@ -78,7 +83,7 @@ def calc_Hm(x, y_pred):
     return Hm_pred
 
 
-def NUz_loss(x, x_pad, y_true, y_pred, dataset):
+def nu_loss(x, x_pad, y_true, y_pred, dataset):
     return mse(y_true, y_pred)
 
 
@@ -114,14 +119,14 @@ class WmLoss(BaseLoss):
         return Wm_loss(self.x, self.x_pad, y_true, y_pred, self.dataset)
 
 
-class NUzLoss(BaseLoss):
-    name = 'NUz_loss'
+class NuLoss(BaseLoss):
+    name = 'nu_loss'
 
     def __init__(self, x, x_pad, dataset):
         super().__init__(x, x_pad, dataset, name=self.name)
 
     def loss_fn(self, y_true, y_pred):
-        return NUz_loss(self.x, self.x_pad, y_true, y_pred, self.dataset)
+        return nu_loss(self.x, self.x_pad, y_true, y_pred, self.dataset)
 
 
 class HiggsDataset(BaseDataset):
@@ -168,7 +173,7 @@ class HiggsParser(BaseParser):
         subparser = subparsers.add_parser('higgs')
         subparser.add_argument('mass', type=int, choices=[125, 400, 750, 1000, 1500])
         subparser.add_argument('target_name', choices=definitions.TARGETS['H'].keys())
-        subparser.add_argument('loss', choices=['h', 'wm', 'nuz'])
+        subparser.add_argument('loss', choices=['h', 'wm', 'nu'])
         subparser.add_argument('--delta_callback', action='store_true')
         subparser.add_argument('--no_early_stopping', action='store_true')
 
@@ -177,9 +182,9 @@ class HiggsParser(BaseParser):
         if args.loss == 'wm':
             pad_features = ['Wam_gen', 'Wbm_gen']
             loss = WmLoss
-        elif args.loss == 'nuz':
+        elif args.loss == 'nu':
             pad_features = ['Wam_gen', 'Wbm_gen']
-            loss = NUzLoss
+            loss = NuLoss
         elif args.loss == 'h':
             pad_features = ['Hm_gen']
             loss = HLoss
@@ -196,8 +201,8 @@ class HiggsParser(BaseParser):
                      'dropout': StepUniform(start=0.0, num=2, step=0.5)}
             trainer.random_search(args.n, hp_rv, hot_start=True)
         else:
-            hparams = {"num_layers": 2, "num_units": 150.0, "learning_rate": 0.00037964080309329335,
-                       "batch_size": 256, "epochs": 200, "dropout": 0.0, "run_num": 13, "val_loss": 0.08129070078134537}
+            with (trainer.log_dir / 'best' / 'best_hparams.json').open('r') as f:
+                hparams = json.load(f)
             run_dir = trainer.log_dir / 'single_run'
             run_dir.mkdir(parents=True, exist_ok=True)
             trainer.train_test_model(hparams, run_dir)
@@ -226,6 +231,9 @@ def main():
     Wm_pred = df_calc_Wm(df_train, y)
     print((Wm_pred - x_pad) / x_pad)
 
+    higgs_dataset = HiggsDataset(mass=125, pad_features=['Hm_gen'])
+    x, x_pad, y = higgs_dataset.train()
+    print(x_pad)
 
 if __name__ == '__main__':
     main()

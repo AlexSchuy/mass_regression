@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -6,15 +8,15 @@ from scipy.stats.distributions import randint
 import definitions
 import training.data as data
 from training.base.base_dataset import BaseDataset
+from training.base.base_loss import BaseLoss
 from training.base.base_parser import BaseParser
 from training.base.base_trainer import BaseTrainer
+from training.callbacks.delta_callback import DeltaCallback
 from training.distributions.constant import Constant
-from training.base.base_loss import BaseLoss
 from training.distributions.loguniform import LogUniform
-from training.models.model_v1_factory import Model_V1_Factory
 from training.distributions.steploguniform import StepLogUniform
 from training.distributions.stepuniform import StepUniform
-from training.callbacks.delta_callback import DeltaCallback
+from training.models.model_v1_factory import Model_V1_Factory
 
 mse = tf.keras.losses.MeanSquaredError()
 
@@ -132,8 +134,8 @@ class WlnuParser(BaseParser):
                      'dropout': StepUniform(start=0.0, num=2, step=0.5)}
             trainer.random_search(args.n, hp_rv, hot_start=True)
         else:
-            hparams = {"num_layers": 2, "num_units": 150.0, "learning_rate": 0.00037964080309329335,
-                       "batch_size": 256, "epochs": 200, "dropout": 0.0, "run_num": 13, "val_loss": 0.08129070078134537}
+            with (trainer.log_dir / 'best' / 'best_hparams.json').open('r') as f:
+                hparams = json.load(f)
             run_dir = trainer.log_dir / 'single_run'
             run_dir.mkdir(parents=True, exist_ok=True)
             trainer.train_test_model(hparams, run_dir)

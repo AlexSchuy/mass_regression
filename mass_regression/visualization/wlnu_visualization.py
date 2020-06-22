@@ -1,7 +1,7 @@
 import numpy as np
 
 from training.models.model_v1_factory import Model_V1_Factory
-from training.wlnu import NUzLoss, WlnuDataset, WmLoss, df_calc_Wm
+from training.datasets.wlnu import NUzLoss, WlnuDataset, WmLoss, df_calc_Wm
 
 
 class Plotter():

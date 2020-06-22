@@ -42,6 +42,7 @@ class BaseDataset():
 
     @staticmethod
     def _scale(A, mean, std):
+        std[std==0.0] = 1.0
         return (A - mean) / std
 
     @staticmethod
