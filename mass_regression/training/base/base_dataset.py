@@ -36,8 +36,7 @@ class BaseDataset():
         else:
             return 0
 
-    @property
-    def tree_gen(self):
+    def tree_gen(self, partition):
         raise NotImplementedError()
 
     @staticmethod

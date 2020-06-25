@@ -20,10 +20,9 @@ class Plotter():
 
     def load_deltas(self, log_dir):
         self.deltas_dir = log_dir / 'deltas'
-        self.delta_NUz_train = np.load(self.deltas_dir / 'delta_NUz_train.npy')
-        self.delta_NUz_val = np.load(self.deltas_dir / 'delta_NUz_val.npy')
-        self.delta_Wm_train = np.load(self.deltas_dir / 'delta_Wm_train.npy')
-        self.delta_Wm_val = np.load(self.deltas_dir / 'delta_Wm_val.npy')
+        self.deltas = {}
+        for delta_path in self.deltas_dir.glob('*.npy'):
+            self.deltas[delta_path.stem.replace('delta_', '')] = np.load(str(delta_path))
 
     def load_data(self, t):
         if t == 'train':

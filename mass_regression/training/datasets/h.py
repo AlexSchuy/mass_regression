@@ -93,20 +93,20 @@ def Wm_loss(x, x_pad, y_true, y_pred, dataset):
     return mse(Wm_true, Wm_pred)
 
 
-def H_loss(x, x_pad, y_true, y_pred, dataset):
+def Hm_loss(x, x_pad, y_true, y_pred, dataset):
     H_pred = dataset.scale_x_pad(calc_Hm(dataset.unscale_x(x), dataset.unscale_y(y_pred)))
     H_true = x_pad
     return mse(H_true, H_pred)
 
 
-class HLoss(BaseLoss):
-    name = 'H_loss'
+class HmLoss(BaseLoss):
+    name = 'Hm_loss'
 
     def __init__(self, x, x_pad, dataset):
         super().__init__(x, x_pad, dataset, name=self.name)
 
     def loss_fn(self, y_true, y_pred):
-        return H_loss(self.x, self.x_pad, y_true, y_pred, self.dataset)
+        return Hm_loss(self.x, self.x_pad, y_true, y_pred, self.dataset)
 
 
 class WmLoss(BaseLoss):
@@ -138,11 +138,15 @@ class HiggsDataset(BaseDataset):
     def targets(self):
         return definitions.TARGETS['H'][self.target_name]
 
-    @property
-    def tree_gen(self):
+    def tree_gen(self, partition):
         gen_features = ['Nax_gen', 'Nay_gen', 'Naz_gen', 'Nbz_gen', 'Wam_gen', 'Wbm_gen', 'Hm_gen']
-        train_df = self.train(split=False)
-        return train_df[gen_features].rename(columns={k: k.replace('_gen', '') for k in gen_features})
+        if partition == 'train':
+            df = self.train(split=False)
+        elif partition == 'val':
+            df = self.val(split=False)
+        elif partition == 'test':
+            df = self.test(split=False)
+        return df[gen_features].rename(columns={k: k.replace('_gen', '') for k in gen_features})
 
     def calculate_tree(self, x, y_pred):
         tree = pd.DataFrame()
@@ -173,7 +177,7 @@ class HiggsParser(BaseParser):
         subparser = subparsers.add_parser('higgs')
         subparser.add_argument('mass', type=int, choices=[125, 400, 750, 1000, 1500])
         subparser.add_argument('target_name', choices=definitions.TARGETS['H'].keys())
-        subparser.add_argument('loss', choices=['h', 'wm', 'nu'])
+        subparser.add_argument('loss', choices=['hm', 'wm', 'nu'])
         subparser.add_argument('--delta_callback', action='store_true')
         subparser.add_argument('--no_early_stopping', action='store_true')
 
@@ -185,9 +189,9 @@ class HiggsParser(BaseParser):
         elif args.loss == 'nu':
             pad_features = ['Wam_gen', 'Wbm_gen']
             loss = NuLoss
-        elif args.loss == 'h':
+        elif args.loss == 'hm':
             pad_features = ['Hm_gen']
-            loss = HLoss
+            loss = HmLoss
         dataset = HiggsDataset(args.mass, definitions.FEATURES['H'], target_name=args.target_name, pad_features=pad_features)
         model_factory = Model_V1_Factory(dataset, loss, seed=args.seed)
         trainer = HiggsTrainer(model_factory, dataset, delta_callback=args.delta_callback,
