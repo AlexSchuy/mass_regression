@@ -1,6 +1,7 @@
 import json
 
 import tensorflow as tf
+from sklearn.utils import shuffle
 from tensorboard.plugins.hparams import api as hp
 
 import definitions
@@ -36,7 +37,7 @@ class BaseTrainer():
         for i in range(n):
             run_name = f'run{i}'
             run_dir = self.log_dir / run_name
-            with tf.summary.create_file_writer(str(run_dir)).as_default(): # pylint: disable=not-context-manager
+            with tf.summary.create_file_writer(str(run_dir)).as_default():  # pylint: disable=not-context-manager
                 hparams = {k: v.rvs() for k, v in hp_rv.items()}
                 hparams['run_num'] = i
                 hp.hparams(hparams)
@@ -59,6 +60,7 @@ class BaseTrainer():
         else:
             batch_size = 32
         x, x_pad, y = self.dataset.train()
+        x, x_pad, y = shuffle(x, x_pad, y)
         x_val, x_pad_val, y_val = self.dataset.val()
         callbacks = self.callbacks + [
             tf.keras.callbacks.TensorBoard(str(self.log_dir)), hp.KerasCallback(str(self.log_dir), hparams)]

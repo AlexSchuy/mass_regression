@@ -131,8 +131,12 @@ class NuLoss(BaseLoss):
 
 class HiggsDataset(BaseDataset):
     def __init__(self, mass, features=definitions.FEATURES['H'], target_name='nu', pad_features=['Wam_gen', 'Wbm_gen']):
-        super().__init__(definitions.SAMPLES_DIR / f'H{mass}',
-                         features, target_name, pad_features, name=f'H{mass}')
+        if type(mass) is int:
+            mass = [mass]
+        sample_dirs = [definitions.SAMPLES_DIR / f'H{m}' for m in mass]
+        name = f'H{"_".join([str(m) for m in mass])}'
+        super().__init__(sample_dirs,
+                         features, target_name, pad_features, name=name)
 
     @property
     def targets(self):
@@ -175,7 +179,7 @@ class HiggsParser(BaseParser):
     def __init__(self, parser, subparsers):
         super().__init__(parser, subparsers, name='higgs')
         subparser = subparsers.add_parser('higgs')
-        subparser.add_argument('mass', type=int, choices=[125, 400, 750, 1000, 1500])
+        subparser.add_argument('mass', type=int, nargs='+', choices=[125, 400, 750, 1000, 1500])
         subparser.add_argument('target_name', choices=definitions.TARGETS['H'].keys())
         subparser.add_argument('loss', choices=['hm', 'wm', 'nu'])
         subparser.add_argument('--delta_callback', action='store_true')
@@ -213,6 +217,12 @@ class HiggsParser(BaseParser):
 
 
 def main():
+    #test_wm_pred()
+    #test_hm_pred()
+    test_mixed()
+
+
+def test_wm_pred():
     higgs_dataset = HiggsDataset(mass=125)
     df_train = higgs_dataset.train(split=False)
     x = df_train[definitions.FEATURES['H']].values
@@ -238,6 +248,60 @@ def main():
     higgs_dataset = HiggsDataset(mass=125, pad_features=['Hm_gen'])
     x, x_pad, y = higgs_dataset.train()
     print(x_pad)
+
+def test_hm_pred():
+    higgs_dataset = HiggsDataset(mass=125, pad_features=['Hm_gen'])
+    df_train = higgs_dataset.train(split=False)
+    x = df_train[definitions.FEATURES['H']].values
+    x_pad = df_train[higgs_dataset.pad_features].values
+    x_pad = x_pad.reshape((80000,))
+    y = df_train[higgs_dataset.targets].values
+    Hm_pred = calc_Hm(x, y)
+    print((Hm_pred - x_pad) / x_pad)
+
+    Hm_pred = df_calc_Hm(df_train, y)
+    print((Hm_pred - x_pad) / x_pad)
+
+    higgs_dataset = HiggsDataset(mass=400, pad_features=['Hm_gen'])
+    df_train = higgs_dataset.train(split=False)
+    x = df_train[definitions.FEATURES['H']].values
+    x_pad = df_train[higgs_dataset.pad_features].values
+    x_pad = x_pad.reshape((80000,))
+    y = df_train[higgs_dataset.targets].values
+    Hm_pred = calc_Hm(x, y)
+    print((Hm_pred - x_pad) / x_pad)
+
+    Hm_pred = df_calc_Hm(df_train, y)
+    print((Hm_pred - x_pad) / x_pad)
+
+def test_mixed():
+    mixed_dataset = HiggsDataset(mass=[125, 400, 750])
+    df_train = mixed_dataset.train(split=False)
+    x = df_train[definitions.FEATURES['H']].values
+    x_pad = df_train[mixed_dataset.pad_features].values
+    y = df_train[mixed_dataset.targets].values
+    Wm_pred = calc_Wm(x, y)
+    print((Wm_pred - x_pad) / x_pad)
+
+    Wm_pred = df_calc_Wm(df_train, y)
+    print((Wm_pred - x_pad) / x_pad)
+    x, x_pad, y = mixed_dataset.train()
+    print(x_pad)
+
+    mixed_dataset = HiggsDataset(mass=[125, 400, 750], pad_features=['Hm_gen'])
+    df_train = mixed_dataset.train(split=False)
+    x = df_train[definitions.FEATURES['H']].values
+    x_pad = df_train[mixed_dataset.pad_features].values
+    x_pad = x_pad.reshape((240000,))
+    y = df_train[mixed_dataset.targets].values
+    Hm_pred = calc_Hm(x, y)
+    print((Hm_pred - x_pad) / x_pad)
+
+    Hm_pred = df_calc_Hm(df_train, y)
+    print((Hm_pred - x_pad) / x_pad)
+    x, x_pad, y = mixed_dataset.train()
+    print(x_pad)
+
 
 if __name__ == '__main__':
     main()

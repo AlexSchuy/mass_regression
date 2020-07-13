@@ -3,9 +3,13 @@ import pandas as pd
 
 import definitions
 
+from pathlib import Path
+
 
 class BaseDataset():
-    def __init__(self, data_path, features, target_name, pad_features=None, name='Base'):
+    def __init__(self, data_paths, features, target_name, pad_features=None, name='Base'):
+        if type(data_paths) is Path:
+            data_paths = [data_paths]
         self.name = name
         self.features = features
         self.target_name = target_name
@@ -15,7 +19,7 @@ class BaseDataset():
         self.df_train = None
         self.df_val = None
         self.df_test = None
-        self._load(data_path)
+        self._load(data_paths)
 
     @property 
     def targets(self):
@@ -81,10 +85,13 @@ class BaseDataset():
         else:
             return x, None, y
 
-    def _load(self, data_path):
+    def _load(self, data_paths):
         def get_data(t):
-            path = data_path / f'{t}.pkl'
-            data = pd.read_pickle(path)
+            frames = []
+            for data_path in data_paths:
+                path = data_path / f'{t}.pkl'
+                frames.append(pd.read_pickle(path))
+            data = pd.concat(frames, ignore_index=True)
             return data
 
         self.df_train = get_data('train')
