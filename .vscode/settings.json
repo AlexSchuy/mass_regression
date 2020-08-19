@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "C:\\Users\\alexj\\.virtualenvs\\mass_regression-87a6zBVK\\Scripts\\python.exe",
+    "python.pythonPath": "c:\\Users\\alexj\\miniconda3\\envs\\mass_regression\\python.exe",
     "terminal.integrated.env.windows": {
         "PYTHONPATH": "${workspaceFolder}\\mass_regression"
     },

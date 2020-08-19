@@ -16,4 +16,6 @@ def main():
         higgs_parser.parse(args)
 
 if __name__ == '__main__':
+    import tensorflow as tf
+    tf.debugging.enable_check_numerics()
     main()

@@ -25,8 +25,6 @@ class Plotter():
             loss = HmLoss
         self.dataset = HiggsDataset(mass=mass, target_name=target_name, pad_features=pad_features)
         self.hparams, self.model = Model_V1_Factory(self.dataset, loss).load(self.run_dir)
-        for t in ('train', 'val', 'test'):
-            self.load_data(t)
         self.load_deltas(log_dir)
 
     def load_deltas(self, log_dir):
@@ -196,8 +194,7 @@ class Plotter():
 
 def main():
     import definitions
-    plotter_hm = Plotter(mass=125, target_name='nu', loss_name='hm',
-                         log_dir=definitions.LOG_DIR / 'H125' / 'nu' / 'model_v1-Hm_loss')
+    plotter_mixed = Plotter(mass=[125, 400, 750], target_name='nu', loss_name='hm', log_dir=definitions.LOG_DIR / 'H125_400_750' / 'nu' / 'model_v1-Hm_loss')
 
 
 if __name__ == '__main__':
