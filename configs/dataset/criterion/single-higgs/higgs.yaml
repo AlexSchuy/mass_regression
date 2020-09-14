@@ -1,0 +1,6 @@
+# @package _group_
+_target_: criterion.higgs.HiggsLoss
+loss_targets: [H_Genm]
+features: ${dataset.features}
+targets: ${dataset.features}
+attributes: ${dataset.features}

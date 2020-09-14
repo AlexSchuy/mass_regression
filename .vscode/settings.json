@@ -1,14 +1,11 @@
 {
-    "python.pythonPath": "c:\\Users\\alexj\\miniconda3\\envs\\mass_regression\\python.exe",
+    "python.pythonPath": "C:\\Users\\alexj\\miniconda3\\envs\\mass_regression\\python.exe",
     "terminal.integrated.env.windows": {
         "PYTHONPATH": "${workspaceFolder}\\mass_regression"
     },
     "python.autoComplete.extraPaths": ["C:\\Users\\alexj\\.virtualenvs\\mass_regression-87a6zBVK\\Lib\\virtual-site-packages"],
     "python.formatting.autopep8Args": [
-        
-    
     "--max-line-length=120"
-    
-    
-    ]
+    ],
+    "python.envFile": "${workspaceFolder}/.vscode/windows.env"
 }

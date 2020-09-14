@@ -1,7 +1,9 @@
+import torch
 import logging
-import os
+import pandas as pd
 
-import numpy as np
+def to_tensor(df: pd.DataFrame):
+    return torch.tensor(df.to_numpy())  # pylint: disable=not-callable
 
 
 def calc_E(px, py, pz, m):
@@ -15,7 +17,10 @@ def add_fourvectors(px1, py1, pz1, m1, px2, py2, pz2, m2):
     py = py1 + py2
     pz = pz1 + pz2
     E = E1 + E2
-    m = (E**2 - px**2 - py**2 - pz**2)**0.5
-    if type(m) is complex:
-        logging.warning(f'imaginary mass of {m} calculated!')
+    m2 = E**2 - px**2 - py**2 - pz**2
+    neg_mask = m2 < 0.0
+    if neg_mask.any():
+        logging.debug('Invalid masses calculated!')
+        m2[neg_mask] *= -1.0
+    m = m2**0.5
     return px, py, pz, m
