@@ -1,6 +1,5 @@
 # @package _group_
-_target_: pytorch_lightning.loggers.wandb
-active: true
+_target_: pytorch_lightning.loggers.WandbLogger
 project: missing-mass
 entity: uw-missing-mass
 id: null

@@ -23,6 +23,7 @@ from typing import List
 
 class HiggsDataset(Dataset):
     def __init__(self, events: pd.DataFrame, features: List[str], outputs: List[str], targets: List[str], attributes: List[str], feature_transform=None, output_transform=None, target_transform=None):
+        super().__init__()
         self.events = events
         self.features = features
         self.outputs = outputs
@@ -32,11 +33,14 @@ class HiggsDataset(Dataset):
         self.output_transform = output_transform
         self.target_transform = target_transform
 
+    def __len__(self):
+        return len(self.events)
+
     def __getitem__(self, index):
-        features = to_tensor(self.events[index, self.features])
-        outputs = to_tensor(self.events[index, self.outputs])
-        targets = to_tensor(self.events[index, self.targets])
-        attributes = to_tensor(self.events[index, self.attributes])
+        features = to_tensor(self.events.loc[index, self.features])
+        outputs = to_tensor(self.events.loc[index, self.outputs])
+        targets = to_tensor(self.events.loc[index, self.targets])
+        attributes = to_tensor(self.events.loc[index, self.attributes])
 
         features = self.feature_transform(features)
         outputs = self.output_transform(outputs)
@@ -47,6 +51,7 @@ class HiggsDataset(Dataset):
 
 class HiggsDataModule(pl.LightningDataModule):
     def __init__(self, batch_size: int, data_dir: Union[str, Path], features: List[str], outputs: List[str], targets: List[str], attributes: List[str], training_masses: Union[List[int], str] = 'all', testing_masses: Union[List[int], str] = 'all', seed: int = 37, data_url: str = 'https://cernbox.cern.ch/index.php/s/1gP5w7skUWzdhlU/download', download: bool = False, num_workers: int = 8, scale: bool = True, event_frac: float = 1.0, train_frac: float = 0.8, test_frac: float = 0.1, feature_transform=None, output_transform=None, target_transform=None, fit_transforms=False):
+        super().__init__()
         self.batch_size = batch_size
         self.seed = seed
         self.num_workers = num_workers
@@ -79,7 +84,6 @@ class HiggsDataModule(pl.LightningDataModule):
         if fit_transforms:
             self.prepare_data()
             self.setup('fit')
-            breakpoint()
             self.feature_transform.fit(
                 to_tensor(self.train_dataset.events[self.features]))
             self.output_transform.fit(
@@ -141,6 +145,7 @@ class HiggsDataModule(pl.LightningDataModule):
                 df[f'{name}m'] = m
             else:
                 df[name] = values
+        df = df.astype('float32')
         df.to_pickle(self.data_path)
 
     def prepare_data(self) -> None:
@@ -243,7 +248,6 @@ def main(cfg: DictConfig):
         cfg.transforms)
     datamodule = hydra.utils.instantiate(
         cfg.dataset, targets=cfg.dataset_criterion.targets, feature_transform=feature_transform, output_transform=output_transform, target_transform=target_transform)
-
 
 if __name__ == "__main__":
     main()  # pylint: disable=no-value-for-parameter

@@ -28,9 +28,9 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
     datamodule = hydra.utils.instantiate(
         cfg.dataset, targets=cfg.dataset_criterion.targets, feature_transform=feature_transform, output_transform=output_transform, target_transform=target_transform)
 
-    # Instantiate the model (pass configs to avoid pickle issues in checkpointing).
+    # Instantiate the model (pass configs and mean/std to avoid pickle issues in checkpointing).
     model = hydra.utils.instantiate(
-        cfg.model, optimizer_cfg=cfg.optimizer, criterion_cfg=cfg.criterion)
+        cfg.model, optimizer_cfg=cfg.optimizer, criterion_cfg=cfg.dataset_criterion, output_mean=output_transform.mean, output_std=output_transform.std, target_mean=target_transform.mean, target_std=target_transform.std)
 
     # Set up checkpointing.
     if cfg.init_ckpt is not None:
@@ -52,8 +52,7 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
     # train
     trainer = pl.Trainer(gpus=cfg.train.gpus, logger=logger, weights_save_path=str(
         output_dir), max_epochs=cfg.train.num_epochs, checkpoint_callback=checkpoint_callback, resume_from_checkpoint=resume_from_checkpoint, deterministic=True, distributed_backend=cfg.train.distributed_backend)
-    if cfg.wandb.active:
-        trainer.logger.log_hyperparams(cfg._content)
+    trainer.logger.log_hyperparams(cfg._content)
     trainer.fit(model=model, datamodule=datamodule)
 
 

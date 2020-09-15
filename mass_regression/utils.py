@@ -5,7 +5,7 @@ from omegaconf import DictConfig
 
 
 def to_tensor(df: pd.DataFrame):
-    return torch.tensor(df.to_numpy())  # pylint: disable=not-callable
+    return torch.from_numpy(df.to_numpy())  # pylint: disable=not-callable
 
 
 def calc_E(px, py, pz, m):
@@ -39,18 +39,14 @@ class StandardScaler():
     """
 
     def __init__(self, mean=None, scale=None):
-        if mean is not None:
-            mean = torch.FloatTensor(mean)
-        if scale is not None:
-            scale = torch.FloatTensor(scale)
         self.mean_ = mean
         self.scale_ = scale
 
     def fit(self, sample):
         """Set the mean and scale values based on the sample data.
         """
-        self.mean_ = sample.mean(0, keepdim=True)
-        self.scale_ = sample.std(0, unbiased=False, keepdim=True)
+        self.mean_ = sample.mean(0)
+        self.scale_ = sample.std(0, unbiased=False)
         self.scale_[self.scale_ < 1e-7] = 1e-7
         logging.info(f'mean = {self.mean_}; std = {self.scale_}')
         return self
@@ -62,6 +58,19 @@ class StandardScaler():
         """Scale the data back to the original representation
         """
         return sample * self.scale_ + self.mean_
+
+    @property
+    def mean(self):
+        return self.mean_
+
+    @property
+    def std(self):
+        return self.scale_
+
+    def to(self, device):
+        self.mean_ = self.mean_.to(device)
+        self.scale_ = self.scale_.to(device)
+        return self
 
 
 def init_transforms(fit_transforms, feature_mean=None, feature_std=None, output_mean=None, output_std=None, target_mean=None, target_std=None):

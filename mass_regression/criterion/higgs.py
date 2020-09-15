@@ -3,10 +3,12 @@ from torch import nn
 from torch.nn import MSELoss
 
 import utils
+from typing import List
 
 
 class WeightedMSELoss(nn.Module):
     def __init__(self, weights):
+        super().__init__()
         self.weights = weights
 
     def forward(self, pred, targets):
@@ -15,23 +17,28 @@ class WeightedMSELoss(nn.Module):
 
 
 class HiggsLoss(nn.Module):
-    def __init__(self, targets: list(str), alphas: list(float) = None, feature_transform=None, target_transform=None, output_transform=None):
+    def __init__(self, targets: List[str], alphas: List[float] = None, output_mean=None, output_std=None, target_mean=None, target_std=None):
+        super().__init__()
         self.targets = targets
-        self.target_transform = target_transform
-        self.output_transform = output_transform
+        _, self.output_transform, self.target_transform = utils.init_transforms(
+            fit_transforms=False, output_mean=output_mean, output_std=output_std, target_mean=target_mean, target_std=target_std)
         if alphas is not None:
             self.loss = WeightedMSELoss(alphas)
         else:
             self.loss = MSELoss()
 
-    def forward(self, outputs: torch.Tensor, attributes: torch.Tensor, targets: torch.Tensor):
+    def forward(self, outputs: torch.Tensor, targets: torch.Tensor, attributes: torch.Tensor):
+        self.output_transform.to(outputs.device)
+        self.target_transform.to(outputs.device)
+
+        breakpoint()
         outputs = self.output_transform.inverse_transform(outputs)
         Nbx_pred, Nby_pred, Wam_pred, Wbm_pred, Hm_pred = calc_tree(
             outputs, attributes)
 
         pred_map = {'Na_Genx': outputs[:, 0], 'Na_Geny': outputs[:, 1], 'Na_Genz': outputs[:, 2], 'Nb_Genx': Nbx_pred,
                     'Nb_Geny': Nby_pred, 'Nb_Genz': outputs[:, 3], 'Wa_Genm': Wam_pred, 'Wb_Genm': Wbm_pred, 'H_Genm': Hm_pred}
-        pred = torch.stack([pred_map[t] for t in self.targets])
+        pred = torch.stack([pred_map[t] for t in self.targets], dim=1)
         pred = self.target_transform(pred)
         return self.loss(pred, targets)
 

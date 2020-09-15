@@ -11,3 +11,5 @@ features: [MET_X_Vis, MET_Y_Vis, La_Visx, La_Visy, La_Visz, La_VisE, Lb_Visx, Lb
 outputs: [Na_Genx, Na_Geny, Na_Genz, Nb_Genz]
 attributes: [MET_X_Vis, MET_Y_Vis, La_Visx, La_Visy, La_Visz, La_Vism, Lb_Visx, Lb_Visy, Lb_Visz, La_Vism, Wa_Genm, Wb_Genm, H_Genm]
 fit_transforms: ${transforms.fit_transforms}
+training_masses: [125]
+testing_masses: [125]
