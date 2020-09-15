@@ -1,7 +1,7 @@
 # @package _group_
 _target_: datasets.higgs.HiggsDataModule
 data_dir: /global/cscratch1/sd/schuya/mass_regression/data/higgs
-event_frac: 0.1
+event_frac: 1.0
 train_frac: 0.8
 test_frac: 0.1
 download: True

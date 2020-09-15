@@ -2,8 +2,12 @@ import torch
 from torch import nn
 from torch.nn import MSELoss
 
+import hydra
+from omegaconf import DictConfig
+
 import utils
 from typing import List
+import logging
 
 
 class WeightedMSELoss(nn.Module):
@@ -31,7 +35,6 @@ class HiggsLoss(nn.Module):
         self.output_transform.to(outputs.device)
         self.target_transform.to(outputs.device)
 
-        breakpoint()
         outputs = self.output_transform.inverse_transform(outputs)
         Nbx_pred, Nby_pred, Wam_pred, Wbm_pred, Hm_pred = calc_tree(
             outputs, attributes)
@@ -70,3 +73,24 @@ def calc_tree(outputs: torch.Tensor, attributes: torch.Tensor):
     _, _, _, Hm_pred = utils.add_fourvectors(Wax_pred, Way_pred, Waz_pred, Wam_pred,
                                              Wbx_pred, Wby_pred, Wbz_pred, Wbm_pred)
     return Nbx_pred, Nby_pred, Wam_pred, Wbm_pred, Hm_pred
+
+
+@hydra.main(config_path="../../configs", config_name="config")
+def main(cfg: DictConfig):
+    feature_transform, output_transform, target_transform = hydra.utils.instantiate(
+        cfg.transforms)
+    datamodule = hydra.utils.instantiate(
+        cfg.dataset, targets=cfg.dataset_criterion.targets, feature_transform=feature_transform, output_transform=output_transform, target_transform=target_transform)
+    criterion = HiggsLoss(cfg.dataset_criterion.targets, None, output_transform.mean,
+                          output_transform.std, target_transform.mean, target_transform.std)
+    dataloader = datamodule.train_dataloader()
+    loss = 0.0
+    for batch in dataloader:
+        features, outputs, targets, attributes = batch
+        loss += criterion(outputs, targets, attributes)
+
+    logging.info(f'Expected loss: 0.0. Actual loss: {loss}')
+
+
+if __name__ == "__main__":
+    main()  # pylint: disable=no-value-for-parameter

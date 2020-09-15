@@ -11,7 +11,7 @@ import hydra
 
 
 class DNN(pl.LightningModule):
-    def __init__(self, cr: float, cs: List[int], input_dim: int, output_dim: int, optimizer_cfg: dict, criterion_cfg: dict, output_mean: Tensor, output_std: Tensor, target_mean: Tensor, target_std: Tensor):
+    def __init__(self, cr: float, cs: List[int], input_dim: int, output_dim: int, optimizer_cfg: dict, criterion_cfg: dict, output_mean: Tensor, output_std: Tensor, target_mean: Tensor, target_std: Tensor, dropout_prob: float = 0.5):
         super().__init__()
         cs = [int(cr * x) for x in cs]
         self.save_hyperparameters()
@@ -30,7 +30,7 @@ class DNN(pl.LightningModule):
         for i in range(1, len(cs)):
             hidden_modules.append(nn.Linear(cs[i-1], cs[i]))
             hidden_modules.append(nn.ReLU())
-            hidden_modules.append(nn.Dropout())
+            hidden_modules.append(nn.Dropout(p=dropout_prob))
         self.hidden_stage = nn.Sequential(*hidden_modules)
 
         self.output_stage = nn.Linear(cs[-1], output_dim)
