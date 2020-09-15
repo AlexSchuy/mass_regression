@@ -14,24 +14,23 @@ import torch
 from omegaconf import DictConfig, OmegaConf
 
 import wandb
-from utils.comm import *
+from utils import StandardScaler
 
-
-def add(a, b):
-    return a + b
 
 def train(cfg: DictConfig, output_dir: Path) -> None:
     logging.info('Beginning training...')
-    datamodule = hydra.utils.instantiate(cfg.dataset)
+
+    # Instantiate the standard scalar transforms.
+    feature_transform, output_transform, target_transform = hydra.utils.instantiate(
+        cfg.transforms)
+
+    # Instantiate the dataset.
+    datamodule = hydra.utils.instantiate(
+        cfg.dataset, targets=cfg.dataset_criterion.targets, feature_transform=feature_transform, output_transform=output_transform, target_transform=target_transform)
+
     # Instantiate the model (pass configs to avoid pickle issues in checkpointing).
-    semantic_criterion_cfg = None
-    embed_criterion_cfg = None
-    if 'semantic' in cfg.criterion:
-        semantic_criterion_cfg = cfg.criterion.semantic
-    if 'embed' in cfg.criterion:
-        embed_criterion_cfg = cfg.criterion.embed
-    model = hydra.utils.instantiate(cfg.model, optimizer_cfg=cfg.optimizer,
-                                    scheduler_cfg=cfg.scheduler, semantic_criterion_cfg=semantic_criterion_cfg, embed_criterion_cfg=embed_criterion_cfg, metrics_cfg=cfg.metrics)
+    model = hydra.utils.instantiate(
+        cfg.model, optimizer_cfg=cfg.optimizer, criterion_cfg=cfg.criterion)
 
     # Set up checkpointing.
     if cfg.init_ckpt is not None:
@@ -43,14 +42,12 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
         cfg.checkpoint, filepath=f'{str(output_dir)}/{{epoch:02d}}')
 
     # Set up wandb logging.
-    if cfg.wandb.active:
-        wandb_id = cfg.wandb.id
-        if wandb_id is None:
-            wandb_id = (output_dir.parent.name + output_dir.name).replace('-', '')
-        logger = pl.loggers.WandbLogger(
-            project=cfg.wandb.project, save_dir=str(output_dir), id=wandb_id, name=cfg.wandb.name, entity=cfg.wandb.entity)
-    else:
-        logger = True
+    wandb_id = cfg.wandb.id
+    if wandb_id is None:
+        wandb_id = (output_dir.parent.name +
+                    output_dir.name).replace('-', '')
+    logger = hydra.utils.instantiate(
+        cfg.wandb, save_dir=str(output_dir), id=wandb_id)
 
     # train
     trainer = pl.Trainer(gpus=cfg.train.gpus, logger=logger, weights_save_path=str(

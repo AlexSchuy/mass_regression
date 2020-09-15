@@ -5,17 +5,15 @@ from typing import Callable, List
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-from pytorch_lightning.metrics import Metric
 
 import hydra
 
 
 class DNN(pl.LightningModule):
-    def __init__(self, cr: float, cs: List[int], input_dim: int, output_dim: int, metrics_cfg: dict, optimizer_cfg: dict, criterion_cfg: dict):
+    def __init__(self, cr: float, cs: List[int], input_dim: int, output_dim: int, optimizer_cfg: dict, criterion_cfg: dict):
         super().__init__()
         cs = [int(cr * x) for x in cs]
         self.save_hyperparameters()
-        self.metrics = hydra.utils.call(metrics_cfg)
         self.optimizer_factory = hydra.utils.instantiate(optimizer_cfg)
         
         self.input_stage = nn.Sequential(nn.Linear(input_dim, cs[0]), nn.ReLU())

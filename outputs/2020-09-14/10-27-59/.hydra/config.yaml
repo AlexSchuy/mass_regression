@@ -1,0 +1,93 @@
+seed: 1588147245
+deterministic: false
+init_ckpt: null
+log_level: INFO
+train:
+  distributed_backend: null
+  batch_size: 8
+  num_epochs: 15
+  gpus: 1
+dataset:
+  _target_: datasets.higgs.HiggsDataModule
+  data_dir: /global/cscratch1/sd/schuya/mass_regression/data/higgs
+  num_events: 10000
+  num_train_events: 8000
+  num_test_events: 1000
+  download: false
+  num_workers: 8
+  num_epochs: ${train.num_epochs}
+  batch_size: ${train.batch_size}
+  features:
+  - MET_X_Vis
+  - MET_Y_Vis
+  - La_Visx
+  - La_Visy
+  - La_Visz
+  - La_Vism
+  - Lb_Visx
+  - Lb_Visy
+  - Lb_Visz
+  - La_Vism
+  outputs:
+  - Na_Genx
+  - Na_Geny
+  - Na_Genz
+  - Nb_Genz
+  attributes:
+  - MET_X_Vis
+  - MET_Y_Vis
+  - La_Visx
+  - La_Visy
+  - La_Visz
+  - La_Vism
+  - Lb_Visx
+  - Lb_Visy
+  - Lb_Visz
+  - La_Vism
+  - Wa_Genm
+  - Wb_Genm
+  - H_Genm
+metrics:
+  _target_: training.metrics.create_metrics
+  names:
+  - iou
+  - confusion_matrix
+  - precision_recall
+  num_classes: ${dataset.num_classes}
+optimizer:
+  _target_: training.optimizers.sgd_factory
+  lr: 0.24
+  weight_decay: 0.0001
+  momentum: 0.9
+  nesterov: true
+dataset_criterion:
+  single-higgs:
+    _target_: criterion.higgs.HiggsLoss
+    loss_targets:
+    - Na_Genx
+    - Na_Geny
+    - Na_Genz
+    - Nb_Genx
+    - Nb_Geny
+    - Nb_Genz
+    features: ${dataset.features}
+    targets: ${dataset.features}
+    attributes: ${dataset.features}
+cs:
+- 96
+- 256
+- 256
+- 96
+cr: 1.0
+n_hidden_layers: 2
+wandb:
+  active: true
+  project: missing-mass
+  entity: uw-missing-mass
+  id: null
+  name: ${dataset}-${model}
+checkpoint:
+  _target_: pytorch_lightning.callbacks.ModelCheckpoint
+  verbose: false
+  mode: min
+  save_top_k: 1

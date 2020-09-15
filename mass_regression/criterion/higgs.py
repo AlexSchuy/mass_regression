@@ -5,31 +5,39 @@ from torch.nn import MSELoss
 import utils
 
 
+class WeightedMSELoss(nn.Module):
+    def __init__(self, weights):
+        self.weights = weights
+
+    def forward(self, pred, targets):
+        diff_sq = (pred - targets) ** 2 / targets.shape[0]
+        return torch.sum(self.weights * diff_sq)
+
+
 class HiggsLoss(nn.Module):
     def __init__(self, targets: list(str), alphas: list(float) = None, feature_transform=None, target_transform=None, output_transform=None):
         self.targets = targets
-        self.alphas = alphas
         self.target_transform = target_transform
         self.output_transform = output_transform
-        self.loss = weighted_mse
+        if alphas is not None:
+            self.loss = WeightedMSELoss(alphas)
+        else:
+            self.loss = MSELoss()
 
     def forward(self, outputs: torch.Tensor, attributes: torch.Tensor, targets: torch.Tensor):
         outputs = self.output_transform.inverse_transform(outputs)
-        Nbx_pred, Nby_pred, Wam_pred, Wbm_pred, Hm_pred = calc_tree(outputs, attributes)
+        Nbx_pred, Nby_pred, Wam_pred, Wbm_pred, Hm_pred = calc_tree(
+            outputs, attributes)
 
         pred_map = {'Na_Genx': outputs[:, 0], 'Na_Geny': outputs[:, 1], 'Na_Genz': outputs[:, 2], 'Nb_Genx': Nbx_pred,
                     'Nb_Geny': Nby_pred, 'Nb_Genz': outputs[:, 3], 'Wa_Genm': Wam_pred, 'Wb_Genm': Wbm_pred, 'H_Genm': Hm_pred}
         pred = torch.stack([pred_map[t] for t in self.targets])
         pred = self.target_transform(pred)
-        return self.loss(pred, targets, self.alphas)
+        return self.loss(pred, targets)
 
-
-def weighted_mse(pred, targets, weights):
-    diff_sq = (pred - targets) ** 2 / targets.shape[0]
-    return torch.sum(weights * diff_sq) 
 
 def calc_tree(outputs: torch.Tensor, attributes: torch.Tensor):
-    # Depends on order of features in dataset config.
+    # Depends on order of outputs and attributes in dataset config.
     METx = attributes[:, 0]
     METy = attributes[:, 1]
     Lax_vis = attributes[:, 2]

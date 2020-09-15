@@ -1,0 +1,8 @@
+# @package _group_
+_target_: pytorch_lightning.loggers.wandb
+active: true
+project: missing-mass
+entity: uw-missing-mass
+id: null
+name: ${dataset_criterion}-${model}
+log_model: True

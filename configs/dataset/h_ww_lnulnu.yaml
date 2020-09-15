@@ -1,0 +1,13 @@
+# @package _group_
+_target_: datasets.higgs.HiggsDataModule
+data_dir: /global/cscratch1/sd/schuya/mass_regression/data/higgs
+event_frac: 0.1
+train_frac: 0.8
+test_frac: 0.1
+download: True
+num_workers: 8
+batch_size: ${train.batch_size}
+features: [MET_X_Vis, MET_Y_Vis, La_Visx, La_Visy, La_Visz, La_VisE, Lb_Visx, Lb_Visy, Lb_Visz, Lb_VisE]
+outputs: [Na_Genx, Na_Geny, Na_Genz, Nb_Genz]
+attributes: [MET_X_Vis, MET_Y_Vis, La_Visx, La_Visy, La_Visz, La_Vism, Lb_Visx, Lb_Visy, Lb_Visz, La_Vism, Wa_Genm, Wb_Genm, H_Genm]
+fit_transforms: ${transforms.fit_transforms}

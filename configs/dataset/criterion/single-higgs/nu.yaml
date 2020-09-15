@@ -1,6 +1,0 @@
-# @package _group_
-_target_: criterion.higgs.HiggsLoss
-loss_targets: [Na_Genx, Na_Geny, Na_Genz, Nb_Genx, Nb_Geny, Nb_Genz]
-features: ${dataset.features}
-targets: ${dataset.features}
-attributes: ${dataset.features}
