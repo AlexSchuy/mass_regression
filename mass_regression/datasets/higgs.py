@@ -185,9 +185,9 @@ class HiggsDataModule(pl.LightningDataModule):
                 (test_events, test_subset), ignore_index=True)
 
         # Select relevant masses.
-        if self.training_masses is 'all':
+        if self.training_masses == 'all':
             self.training_masses = all_masses
-        if self.testing_masses is 'all':
+        if self.testing_masses == 'all':
             self.testing_masses = all_masses
         train_events = train_events[train_events['H_Mass'].isin(
             self.training_masses)].sample(frac=1).reset_index(drop=True)

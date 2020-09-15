@@ -11,3 +11,4 @@ defaults:
   - model: dnn
   - wandb: local
   - checkpoint: top_1
+  - early_stopping: 10_epochs
