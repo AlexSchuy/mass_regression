@@ -48,6 +48,9 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
     # Set up early stopping.
     early_stop_callback = hydra.utils.instantiate(cfg.early_stopping)
 
+    # Set up lr monitor.
+    lr_monitor = pl.callbacks.LearningRateLogger('step')
+
     # Set up wandb logging.
     wandb_id = cfg.wandb.id
     if wandb_id is None:
@@ -58,7 +61,7 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
 
     # train
     trainer = pl.Trainer(gpus=cfg.train.gpus, logger=logger, weights_save_path=str(
-        output_dir), max_epochs=cfg.train.num_epochs, early_stop_callback=early_stop_callback, checkpoint_callback=checkpoint_callback, resume_from_checkpoint=resume_from_checkpoint, deterministic=True, distributed_backend=cfg.train.distributed_backend, gradient_clip_val=cfg.train.gradient_clip_val)
+        output_dir), max_epochs=cfg.train.num_epochs, early_stop_callback=early_stop_callback, checkpoint_callback=checkpoint_callback, resume_from_checkpoint=resume_from_checkpoint, deterministic=True, distributed_backend=cfg.train.distributed_backend, gradient_clip_val=cfg.train.gradient_clip_val, callbacks=[lr_monitor])
     trainer.logger.log_hyperparams(cfg._content)
     trainer.fit(model=model, datamodule=datamodule)
 

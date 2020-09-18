@@ -49,7 +49,7 @@ class DNN(pl.LightningModule):
         optimizer = self.optimizer_factory(self.parameters())
         if self.scheduler_cfg is not None:
             scheduler = hydra.utils.instantiate(self.scheduler_cfg, optimizer=optimizer)
-            return [optimizer], [scheduler]
+            return [optimizer], [{'scheduler': scheduler, 'monitor': 'val_checkpoint_on', 'interval': 'epoch', 'frequency': 1}]
         return optimizer
 
     def step(self, batch, batch_idx, split):
