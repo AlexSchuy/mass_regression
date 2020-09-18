@@ -28,9 +28,13 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
     datamodule = hydra.utils.instantiate(
         cfg.dataset, targets=cfg.dataset_criterion.targets, feature_transform=feature_transform, output_transform=output_transform, target_transform=target_transform)
 
+    if 'scheduler' not in cfg:
+        scheduler_cfg = None
+    else:
+        scheduler_cfg = cfg.scheduler
     # Instantiate the model (pass configs and mean/std to avoid pickle issues in checkpointing).
     model = hydra.utils.instantiate(
-        cfg.model, optimizer_cfg=cfg.optimizer, criterion_cfg=cfg.dataset_criterion, output_mean=output_transform.mean, output_std=output_transform.std, target_mean=target_transform.mean, target_std=target_transform.std)
+        cfg.model, optimizer_cfg=cfg.optimizer, scheduler_cfg=scheduler_cfg, criterion_cfg=cfg.dataset_criterion, output_mean=output_transform.mean, output_std=output_transform.std, target_mean=target_transform.mean, target_std=target_transform.std)
 
     # Set up checkpointing.
     if cfg.init_ckpt is not None:
@@ -54,7 +58,7 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
 
     # train
     trainer = pl.Trainer(gpus=cfg.train.gpus, logger=logger, weights_save_path=str(
-        output_dir), max_epochs=cfg.train.num_epochs, early_stop_callback=early_stop_callback, checkpoint_callback=checkpoint_callback, resume_from_checkpoint=resume_from_checkpoint, deterministic=True, distributed_backend=cfg.train.distributed_backend)
+        output_dir), max_epochs=cfg.train.num_epochs, early_stop_callback=early_stop_callback, checkpoint_callback=checkpoint_callback, resume_from_checkpoint=resume_from_checkpoint, deterministic=True, distributed_backend=cfg.train.distributed_backend, gradient_clip_val=cfg.train.gradient_clip_val)
     trainer.logger.log_hyperparams(cfg._content)
     trainer.fit(model=model, datamodule=datamodule)
 

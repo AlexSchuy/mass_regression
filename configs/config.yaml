@@ -4,11 +4,13 @@ init_ckpt: null
 log_level: INFO
 defaults:
   - transforms: fit
-  - train: single_gpu
+  - train: slurm
+  - dataset_range: higgs_125
   - dataset: h_ww_lnulnu
   - optimizer: sgd
+  - scheduler: reduce_lr_on_plateau
   - dataset_criterion: h_ww_lnulnu_nu
   - model: dnn
-  - wandb: local
+  - wandb: upload
   - checkpoint: top_1
   - early_stopping: 10_epochs

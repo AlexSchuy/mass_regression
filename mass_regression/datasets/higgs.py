@@ -248,6 +248,7 @@ def main(cfg: DictConfig):
         cfg.transforms)
     datamodule = hydra.utils.instantiate(
         cfg.dataset, targets=cfg.dataset_criterion.targets, feature_transform=feature_transform, output_transform=output_transform, target_transform=target_transform)
+    breakpoint()
 
 if __name__ == "__main__":
     main()  # pylint: disable=no-value-for-parameter

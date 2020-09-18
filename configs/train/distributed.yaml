@@ -3,3 +3,4 @@ distributed_backend: ddp
 batch_size: 2
 num_epochs: 15
 gpus: 4
+gradient_clip_val: 0.5
