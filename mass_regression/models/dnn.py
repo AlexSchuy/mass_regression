@@ -49,7 +49,7 @@ class DNN(pl.LightningModule):
         optimizer = self.optimizer_factory(self.parameters())
         if self.scheduler_cfg is not None:
             scheduler = hydra.utils.instantiate(self.scheduler_cfg, optimizer=optimizer)
-            return [optimizer], [{'scheduler': scheduler, 'monitor': 'val_checkpoint_on', 'interval': 'epoch', 'frequency': 1}]
+            return [optimizer], [{'scheduler': scheduler, 'monitor': 'val_checkpoint_on', 'interval': 'step', 'frequency': 1}]
         return optimizer
 
     def step(self, batch, batch_idx, split):
@@ -59,7 +59,7 @@ class DNN(pl.LightningModule):
         if split == 'train':
             result = pl.TrainResult(loss)
         else:
-            result = pl.EvalResult(checkpoint_on=loss)
+            result = pl.EvalResult(checkpoint_on=loss, early_stop_on=loss)
         result.log(f'{split}_loss', loss, prog_bar=True,
                    sync_dist=True, on_epoch=True)
         # Hack to record

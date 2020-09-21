@@ -46,7 +46,10 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
         cfg.checkpoint, filepath=f'{str(output_dir)}/{{epoch:02d}}')
 
     # Set up early stopping.
-    early_stop_callback = hydra.utils.instantiate(cfg.early_stopping)
+    if 'early_stopping' in cfg:
+        early_stop_callback = hydra.utils.instantiate(cfg.early_stopping)
+    else:
+        early_stop_callback=False
 
     # Set up lr monitor.
     lr_monitor = pl.callbacks.LearningRateLogger('step')
