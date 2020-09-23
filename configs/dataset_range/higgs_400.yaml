@@ -1,0 +1,3 @@
+# @package _group_
+training_masses: [400]
+testing_masses: [400]

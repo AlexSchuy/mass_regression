@@ -11,9 +11,8 @@ import hydra
 import pytorch_lightning as pl
 import submitit
 import torch
-from omegaconf import DictConfig, OmegaConf
-
 import wandb
+from omegaconf import DictConfig, OmegaConf
 from utils import StandardScaler
 
 
@@ -28,13 +27,19 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
     datamodule = hydra.utils.instantiate(
         cfg.dataset, targets=cfg.dataset_criterion.targets, feature_transform=feature_transform, output_transform=output_transform, target_transform=target_transform)
 
-    if 'scheduler' not in cfg:
-        scheduler_cfg = None
-    else:
+    steps_per_epoch = None
+    scheduler_cfg = None
+    if 'scheduler' in cfg:
         scheduler_cfg = cfg.scheduler
+        if scheduler_cfg._target_ == 'torch.optim.lr_scheduler.OneCycleLR':
+            datamodule.setup('fit')
+            steps_per_epoch = len(datamodule.train_dataloader())
+
     # Instantiate the model (pass configs and mean/std to avoid pickle issues in checkpointing).
     model = hydra.utils.instantiate(
-        cfg.model, optimizer_cfg=cfg.optimizer, scheduler_cfg=scheduler_cfg, criterion_cfg=cfg.dataset_criterion, output_mean=output_transform.mean, output_std=output_transform.std, target_mean=target_transform.mean, target_std=target_transform.std)
+        cfg.model, optimizer_cfg=cfg.optimizer.factory, scheduler_cfg=scheduler_cfg, criterion_cfg=cfg.dataset_criterion,
+        output_mean=output_transform.mean, output_std=output_transform.std, target_mean=target_transform.mean,
+        target_std=target_transform.std, steps_per_epoch=steps_per_epoch)
 
     # Set up checkpointing.
     if cfg.init_ckpt is not None:
@@ -49,7 +54,7 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
     if 'early_stopping' in cfg:
         early_stop_callback = hydra.utils.instantiate(cfg.early_stopping)
     else:
-        early_stop_callback=False
+        early_stop_callback = False
 
     # Set up lr monitor.
     lr_monitor = pl.callbacks.LearningRateLogger('step')
@@ -64,8 +69,11 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
 
     # train
     trainer = pl.Trainer(gpus=cfg.train.gpus, logger=logger, weights_save_path=str(
-        output_dir), max_epochs=cfg.train.num_epochs, early_stop_callback=early_stop_callback, checkpoint_callback=checkpoint_callback, resume_from_checkpoint=resume_from_checkpoint, deterministic=True, distributed_backend=cfg.train.distributed_backend, gradient_clip_val=cfg.train.gradient_clip_val, callbacks=[lr_monitor])
+        output_dir), max_epochs=cfg.train.num_epochs, early_stop_callback=early_stop_callback, checkpoint_callback=checkpoint_callback,
+        resume_from_checkpoint=resume_from_checkpoint, deterministic=True, distributed_backend=cfg.train.distributed_backend,
+        gradient_clip_val=cfg.train.gradient_clip_val, callbacks=[lr_monitor], terminate_on_nan=True, auto_lr_find=cfg.optimizer.auto_lr)
     trainer.logger.log_hyperparams(cfg._content)
+    trainer.tune(model=model, datamodule=datamodule)
     trainer.fit(model=model, datamodule=datamodule)
 
 

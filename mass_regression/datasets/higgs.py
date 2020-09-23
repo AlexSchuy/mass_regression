@@ -185,10 +185,14 @@ class HiggsDataModule(pl.LightningDataModule):
                 (test_events, test_subset), ignore_index=True)
 
         # Select relevant masses.
-        if self.training_masses == 'all':
+        if type(self.training_masses) is str and self.training_masses == 'all':
             self.training_masses = all_masses
-        if self.testing_masses == 'all':
+        if type(self.testing_masses) is str and self.testing_masses == 'all':
             self.testing_masses = all_masses
+        self.training_masses = np.array(self.training_masses)
+        self.testing_masses = np.array(self.testing_masses)
+        self.training_masses = np.delete(self.training_masses, self.training_masses == 125.0)
+        self.testing_masses = np.delete(self.testing_masses, self.testing_masses == 125.0)
         train_events = train_events[train_events['H_Mass'].isin(
             self.training_masses)].sample(frac=1).reset_index(drop=True)
         val_events = val_events[val_events['H_Mass'].isin(

@@ -1,0 +1,7 @@
+# @package _group_
+auto_lr: True
+factory:
+  _target_: training.optimizers.adamw_factory
+  lr: 0.001
+  weight_decay: 1e-4
+  amsgrad: False

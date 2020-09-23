@@ -4,5 +4,9 @@
         "PYTHONPATH": "${workspaceFolder}/mass_regression:/global/u2/s/schuya/.local/cori/pytorchv1.6.0-gpu/lib/python3.7/site-packages/"
     },
     "python.envFile": "${workspaceFolder}/.vscode/linux.env",
-    "terminal.integrated.shellArgs.linux": ["--init-file", "modules.sh"]
+    "terminal.integrated.shellArgs.linux": [
+        "--init-file",
+        "modules.sh"
+    ],
+    "python.sortImports.path": "/global/u2/s/schuya/.local/cori/pytorchv1.6.0-gpu/bin/isort"
 }
