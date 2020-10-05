@@ -88,7 +88,7 @@ def hydra_main(cfg: DictConfig) -> None:
         slurm_dir.mkdir()
         executor = submitit.AutoExecutor(slurm_dir)
         executor.update_parameters(slurm_gpus_per_node=cfg.train.slurm.gpus_per_node, slurm_nodes=cfg.train.slurm.nodes, slurm_ntasks_per_node=cfg.train.slurm.gpus_per_node,
-                                   slurm_cpus_per_task=cfg.train.slurm.cpus_per_task, slurm_time=cfg.train.slurm.time, slurm_additional_parameters={'constraint': 'gpu', 'account': cfg.train.slurm.account})
+                                   slurm_cpus_per_task=cfg.train.slurm.cpus_per_task, slurm_time=cfg.train.slurm.time, slurm_additional_parameters={'qos': 'test', 'constraint': 'gpu', 'account': cfg.train.slurm.account})
         job = executor.submit(train, cfg=cfg, output_dir=Path.cwd())
         logging.info(f'submitted job {job.job_id}.')
     else:

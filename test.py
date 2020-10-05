@@ -19,18 +19,17 @@ from omegaconf import OmegaConf
 from tqdm import tqdm
 
 
-def load_from_run(run_dir: str):
+def load_from_run(run_dir: str, ckpt_path: str):
     run_dir = Path(run_dir)
     config_path = run_dir / '.hydra' / 'config.yaml'
     cfg = OmegaConf.load(config_path)
-    checkpoint = str([p for p in sorted(run_dir.glob('*.ckpt'))][-1])
     model = cfg.model._target_
     if model == 'models.dnn.DNN':
         from models.dnn import DNN
         model = DNN
     else:
         raise NotImplementedError()
-    model = model.load_from_checkpoint(checkpoint)
+    model = model.load_from_checkpoint(ckpt_path)
     wandb_dir = run_dir / 'wandb'
     run_path = [p for p in sorted(wandb_dir.glob('run*'))][-1]
     wandb_id = run_path.name.split('-')[-1]
@@ -39,7 +38,7 @@ def load_from_run(run_dir: str):
         cfg.transforms)
     datamodule = hydra.utils.instantiate(
         cfg.dataset, testing_masses='all', targets=cfg.dataset_criterion.targets, feature_transform=feature_transform, output_transform=output_transform, target_transform=target_transform)
-    return model, checkpoint, project, wandb_id, datamodule, output_transform
+    return model, project, wandb_id, datamodule, output_transform
 
 
 def save_predictions(model, datamodule, output_dir: Path, output_transform):
@@ -71,10 +70,11 @@ def main() -> None:
     from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.add_argument('run_dir')
+    parser.add_argument('ckpt_path')
     parser.add_argument('output_dir')
     args = parser.parse_args()
-    model, checkpoint, project, wandb_id, datamodule, output_transform, = load_from_run(
-        args.run_dir)
+    model, project, wandb_id, datamodule, output_transform, = load_from_run(
+        args.run_dir, args.ckpt_path)
     output_dir = Path(args.output_dir)
     output_dir.mkdir(exist_ok=True, parents=True)
     save_predictions(model, datamodule, output_dir, output_transform)

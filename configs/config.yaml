@@ -5,12 +5,12 @@ log_level: INFO
 defaults:
   - transforms: fit
   - train: slurm
-  - dataset_range: higgs_400
+  - dataset_range: higgs_all
   - dataset: h_ww_lnulnu
-  - optimizer: sgd
-  - scheduler: reduce_lr_on_plateau
+  - optimizer: adamw
+  - scheduler: one_cycle
   - dataset_criterion: h_ww_lnulnu_mixed
   - model: dnn
   - wandb: upload
   - checkpoint: top_1
-  - early_stopping: 10_epochs
+  - early_stopping: null
