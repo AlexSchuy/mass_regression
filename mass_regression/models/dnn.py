@@ -74,17 +74,11 @@ class DNN(pl.LightningModule):
 
     def step(self, batch, batch_idx, split):
         inputs, _, targets, attributes = batch
-        if batch_idx == 471:
-            breakpoint()
         outputs = self(inputs)
         loss = self.criterion(outputs, targets, attributes)
-        if split == 'train':
-            result = pl.TrainResult(loss)
-        else:
-            result = pl.EvalResult(checkpoint_on=loss, early_stop_on=loss)
-        result.log(f'{split}_loss', loss, prog_bar=True,
-                   sync_dist=True, on_epoch=True)
-        return result
+        self.log(f'{split}_loss', loss, prog_bar=True,
+                 sync_dist=True, on_epoch=True)
+        return loss
 
     def training_step(self, batch, batch_idx):
         return self.step(batch, batch_idx, split='train')

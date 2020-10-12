@@ -12,11 +12,12 @@ import numpy as np
 import pandas as df
 import pytorch_lightning as pl
 import torch
-import wandb
 import yaml
-from criterion.higgs import calc_tree
+from mass_regression.criterion.higgs import calc_tree
 from omegaconf import OmegaConf
 from tqdm import tqdm
+
+import wandb
 
 
 def load_from_run(run_dir: str, ckpt_path: str):
@@ -25,7 +26,7 @@ def load_from_run(run_dir: str, ckpt_path: str):
     cfg = OmegaConf.load(config_path)
     model = cfg.model._target_
     if model == 'models.dnn.DNN':
-        from models.dnn import DNN
+        from mass_regression.models.dnn import DNN
         model = DNN
     else:
         raise NotImplementedError()
@@ -46,7 +47,7 @@ def save_predictions(model, datamodule, output_dir: Path, output_transform):
     test_loader = datamodule.test_dataloader()
     dataset = test_loader.dataset
     model.eval()
-    
+
     output_df = dataset.events.copy()
     with torch.no_grad():
         features, _, _, attributes = dataset[:]

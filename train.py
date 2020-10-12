@@ -11,9 +11,10 @@ import hydra
 import pytorch_lightning as pl
 import submitit
 import torch
-import wandb
 from omegaconf import DictConfig, OmegaConf
-from utils import StandardScaler
+
+import wandb
+from mass_regression.utils import StandardScaler
 
 
 def train(cfg: DictConfig, output_dir: Path) -> None:
@@ -57,7 +58,7 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
         early_stop_callback = False
 
     # Set up lr monitor.
-    lr_monitor = pl.callbacks.LearningRateLogger('step')
+    lr_monitor = pl.callbacks.LearningRateMonitor('step')
 
     # Set up wandb logging.
     wandb_id = cfg.wandb.id
@@ -69,10 +70,10 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
 
     # train
     trainer = pl.Trainer(gpus=cfg.train.gpus, logger=logger, weights_save_path=str(
-        output_dir), max_epochs=cfg.train.num_epochs, early_stop_callback=early_stop_callback, checkpoint_callback=checkpoint_callback,
+        output_dir), max_epochs=cfg.train.num_epochs, checkpoint_callback=checkpoint_callback,
         resume_from_checkpoint=resume_from_checkpoint, deterministic=True, distributed_backend=cfg.train.distributed_backend,
-        gradient_clip_val=cfg.train.gradient_clip_val, callbacks=[lr_monitor], terminate_on_nan=True, auto_lr_find=cfg.optimizer.auto_lr)
-    trainer.logger.log_hyperparams(cfg._content)
+        gradient_clip_val=cfg.train.gradient_clip_val, callbacks=[early_stop_callback, lr_monitor], terminate_on_nan=True, auto_lr_find=cfg.optimizer.auto_lr)
+    trainer.logger.log_hyperparams(cfg._content) # pylint: disable=no-member
     trainer.tune(model=model, datamodule=datamodule)
     trainer.fit(model=model, datamodule=datamodule)
 

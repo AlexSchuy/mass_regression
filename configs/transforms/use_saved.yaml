@@ -1,5 +1,5 @@
 # @package _group_
-_target_: utils.init_transforms
+_target_: mass_regression.utils.init_transforms
 fit_transforms: False
 feature_mean: null
 feature_std: null

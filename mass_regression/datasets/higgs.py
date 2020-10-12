@@ -1,24 +1,22 @@
 import logging
 import random
 from pathlib import Path
-from typing import Union
+from typing import List, Union
 
+import hydra
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import requests
 import torch
 import uproot
+from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset
 from tqdm import tqdm
 from uproot_methods.classes.TLorentzVector import TLorentzVector
 
-from utils import to_tensor, StandardScaler
-import hydra
-from omegaconf import DictConfig
-
-from typing import List
+from ..utils import StandardScaler, to_tensor
 
 
 class HiggsDataset(Dataset):
@@ -191,8 +189,10 @@ class HiggsDataModule(pl.LightningDataModule):
             self.testing_masses = all_masses
         self.training_masses = np.array(self.training_masses)
         self.testing_masses = np.array(self.testing_masses)
-        self.training_masses = np.delete(self.training_masses, self.training_masses == 125.0)
-        self.testing_masses = np.delete(self.testing_masses, self.testing_masses == 125.0)
+        self.training_masses = np.delete(
+            self.training_masses, self.training_masses == 125.0)
+        self.testing_masses = np.delete(
+            self.testing_masses, self.testing_masses == 125.0)
         train_events = train_events[train_events['H_Mass'].isin(
             self.training_masses)].sample(frac=1).reset_index(drop=True)
         val_events = val_events[val_events['H_Mass'].isin(
@@ -253,6 +253,7 @@ def main(cfg: DictConfig):
     datamodule = hydra.utils.instantiate(
         cfg.dataset, targets=cfg.dataset_criterion.targets, feature_transform=feature_transform, output_transform=output_transform, target_transform=target_transform)
     breakpoint()
+
 
 if __name__ == "__main__":
     main()  # pylint: disable=no-value-for-parameter

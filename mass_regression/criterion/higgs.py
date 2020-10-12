@@ -1,13 +1,13 @@
+import logging
+from typing import List
+
+import hydra
 import torch
+from omegaconf import DictConfig
 from torch import nn
 from torch.nn import MSELoss
 
-import hydra
-from omegaconf import DictConfig
-
-import utils
-from typing import List
-import logging
+from ..utils import add_fourvectors, init_transforms
 
 
 class WeightedMSELoss(nn.Module):
@@ -24,7 +24,7 @@ class HiggsLoss(nn.Module):
     def __init__(self, targets: List[str], alphas: List[float] = None, output_mean=None, output_std=None, target_mean=None, target_std=None):
         super().__init__()
         self.targets = targets
-        _, self.output_transform, self.target_transform = utils.init_transforms(
+        _, self.output_transform, self.target_transform = init_transforms(
             fit_transforms=False, output_mean=output_mean, output_std=output_std, target_mean=target_mean, target_std=target_std)
         if alphas is not None:
             self.loss = WeightedMSELoss(alphas)
@@ -66,12 +66,12 @@ def calc_tree(outputs: torch.Tensor, attributes: torch.Tensor):
     Nby_pred = METy - Nay_pred
     Nbz_pred = outputs[:, 3]
     Nbm_pred = torch.zeros_like(Nbx_pred)  # Approximate 0 neutrino mass.
-    Wax_pred, Way_pred, Waz_pred, Wam_pred = utils.add_fourvectors(
+    Wax_pred, Way_pred, Waz_pred, Wam_pred = add_fourvectors(
         Nax_pred, Nay_pred, Naz_pred, Nam_pred, Lax_vis, Lay_vis, Laz_vis, Lam_vis)
-    Wbx_pred, Wby_pred, Wbz_pred, Wbm_pred = utils.add_fourvectors(
+    Wbx_pred, Wby_pred, Wbz_pred, Wbm_pred = add_fourvectors(
         Nbx_pred, Nby_pred, Nbz_pred, Nbm_pred, Lbx_vis, Lby_vis, Lbz_vis, Lbm_vis)
-    _, _, _, Hm_pred = utils.add_fourvectors(Wax_pred, Way_pred, Waz_pred, Wam_pred,
-                                             Wbx_pred, Wby_pred, Wbz_pred, Wbm_pred)
+    _, _, _, Hm_pred = add_fourvectors(Wax_pred, Way_pred, Waz_pred, Wam_pred,
+                                       Wbx_pred, Wby_pred, Wbz_pred, Wbm_pred)
     return Nbx_pred, Nby_pred, Wam_pred, Wbm_pred, Hm_pred
 
 

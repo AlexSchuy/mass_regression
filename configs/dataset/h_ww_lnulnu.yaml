@@ -1,5 +1,5 @@
 # @package _group_
-_target_: datasets.higgs.HiggsDataModule
+_target_: mass_regression.datasets.higgs.HiggsDataModule
 data_dir: /global/cscratch1/sd/schuya/mass_regression/data/higgs
 event_frac: 1.0
 train_frac: 0.8
