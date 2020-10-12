@@ -42,6 +42,8 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
         output_mean=output_transform.mean, output_std=output_transform.std, target_mean=target_transform.mean,
         target_std=target_transform.std, steps_per_epoch=steps_per_epoch)
 
+    callbacks = []
+
     # Set up checkpointing.
     if cfg.init_ckpt is not None:
         logging.info(f'Loading checkpoint={cfg.init_ckpt}')
@@ -54,11 +56,11 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
     # Set up early stopping.
     if 'early_stopping' in cfg:
         early_stop_callback = hydra.utils.instantiate(cfg.early_stopping)
-    else:
-        early_stop_callback = False
+        callbacks.append(early_stop_callback)
 
     # Set up lr monitor.
     lr_monitor = pl.callbacks.LearningRateMonitor('step')
+    callbacks.append(lr_monitor)
 
     # Set up wandb logging.
     wandb_id = cfg.wandb.id
@@ -72,8 +74,8 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
     trainer = pl.Trainer(gpus=cfg.train.gpus, logger=logger, weights_save_path=str(
         output_dir), max_epochs=cfg.train.num_epochs, checkpoint_callback=checkpoint_callback,
         resume_from_checkpoint=resume_from_checkpoint, deterministic=True, distributed_backend=cfg.train.distributed_backend,
-        gradient_clip_val=cfg.train.gradient_clip_val, callbacks=[early_stop_callback, lr_monitor], terminate_on_nan=True, auto_lr_find=cfg.optimizer.auto_lr)
-    trainer.logger.log_hyperparams(cfg._content) # pylint: disable=no-member
+        gradient_clip_val=cfg.train.gradient_clip_val, callbacks=callbacks, terminate_on_nan=True, auto_lr_find=cfg.optimizer.auto_lr)
+    trainer.logger.log_hyperparams(cfg._content)  # pylint: disable=no-member
     trainer.tune(model=model, datamodule=datamodule)
     trainer.fit(model=model, datamodule=datamodule)
 
