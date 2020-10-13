@@ -82,9 +82,6 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
         gradient_clip_val=cfg.train.gradient_clip_val, callbacks=callbacks, terminate_on_nan=True, auto_lr_find=cfg.optimizer.auto_lr)
     trainer.logger.log_hyperparams(cfg._content)  # pylint: disable=no-member
     trainer.tune(model=model, datamodule=datamodule)
-    lr_finder = trainer.tuner.lr_find(model)
-    fig = lr_finder.plot(suggest=True)
-    fig.savefig(output_dir / 'lr_plot.png')
     trainer.fit(model=model, datamodule=datamodule)
 
 
