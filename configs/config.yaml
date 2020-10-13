@@ -4,7 +4,7 @@ init_ckpt: null
 log_level: INFO
 defaults:
   - transforms: fit
-  - train: single_gpu
+  - train: slurm
   - dataset_range: fine_higgs_all
   - dataset: fine_higgs
   - optimizer: adamw

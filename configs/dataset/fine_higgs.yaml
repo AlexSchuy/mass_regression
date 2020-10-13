@@ -1,6 +1,6 @@
 # @package _group_
 _target_: mass_regression.datasets.higgs.HiggsDataModule
-data_dir: /Users/alexj/work/data/mass_regression/fine_higgs
+data_dir: /global/cscratch1/sd/schuya/mass_regression/data/fine_higgs
 event_frac: 1.0
 train_frac: 0.8
 test_frac: 0.1

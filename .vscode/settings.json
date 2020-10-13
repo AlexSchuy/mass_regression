@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "C:\\Users\\alexj\\miniconda3\\envs\\mass_regression\\python.exe",
+    "python.pythonPath": "/usr/common/software/pytorch/v1.6.0-gpu/bin/python",
     "terminal.integrated.env.linux": {
         "PYTHONPATH": "${workspaceFolder}/mass_regression:/global/u2/s/schuya/.local/cori/pytorchv1.6.0-gpu/lib/python3.7/site-packages/"
     },
@@ -8,5 +8,5 @@
         "--init-file",
         "modules.sh"
     ],
-    "python.sortImports.path": "C:\\Users\\alexj\\miniconda3\\envs\\mass_regression\\Scripts\\isort.exe"
+    "python.sortImports.path": "/global/u2/s/schuya/.local/cori/pytorchv1.6.0-gpu/bin/isort"
 }

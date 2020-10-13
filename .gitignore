@@ -1,4 +1,4 @@
-.vscode/
+.vscode/*
 */outputs/*
 outputs/*
 
@@ -116,3 +116,4 @@ venv.bak/
 
 # pickle
 *.pkl
+.vscode/settings.json
