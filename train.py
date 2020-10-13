@@ -15,6 +15,7 @@ from omegaconf import DictConfig, OmegaConf
 
 import wandb
 from mass_regression.utils import StandardScaler
+from mass_regression.training.checkpoint import CheckpointEveryNSteps
 
 
 def train(cfg: DictConfig, output_dir: Path) -> None:
@@ -62,6 +63,10 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
     lr_monitor = pl.callbacks.LearningRateMonitor('step')
     callbacks.append(lr_monitor)
 
+    # Set up step checkpoints.
+    step_checkpoint = CheckpointEveryNSteps(save_step_frequency=1000)
+    callbacks.append(step_checkpoint)
+
     # Set up wandb logging.
     wandb_id = cfg.wandb.id
     if wandb_id is None:
@@ -77,6 +82,9 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
         gradient_clip_val=cfg.train.gradient_clip_val, callbacks=callbacks, terminate_on_nan=True, auto_lr_find=cfg.optimizer.auto_lr)
     trainer.logger.log_hyperparams(cfg._content)  # pylint: disable=no-member
     trainer.tune(model=model, datamodule=datamodule)
+    lr_finder = trainer.tuner.lr_find(trainer, model)
+    fig = lr_finder.plot(suggest=True)
+    fig.savefig(output_dir / 'lr_plot.png')
     trainer.fit(model=model, datamodule=datamodule)
 
 

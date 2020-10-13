@@ -34,13 +34,12 @@ class HiggsLoss(nn.Module):
     def forward(self, outputs: torch.Tensor, targets: torch.Tensor, attributes: torch.Tensor):
         self.output_transform.to(outputs.device)
         self.target_transform.to(outputs.device)
-
         outputs = self.output_transform.inverse_transform(outputs)
-        Nbx_pred, Nby_pred, Wam_pred, Wbm_pred, Hm_pred = calc_tree(
+        Nbx_pred, Nby_pred, Wax_pred, Way_pred, Waz_pred, Wam_pred, Wbx_pred, Wby_pred, Wbz_pred, Wbm_pred, Hx_pred, Hy_pred, Hz_pred, Hm_pred = calc_tree(
             outputs, attributes)
 
         pred_map = {'Na_Genx': outputs[:, 0], 'Na_Geny': outputs[:, 1], 'Na_Genz': outputs[:, 2], 'Nb_Genx': Nbx_pred,
-                    'Nb_Geny': Nby_pred, 'Nb_Genz': outputs[:, 3], 'Wa_Genm': Wam_pred, 'Wb_Genm': Wbm_pred, 'H_Genm': Hm_pred}
+                    'Nb_Geny': Nby_pred, 'Nb_Genz': outputs[:, 3], 'Wa_Genx': Wax_pred, 'Wa_Geny': Way_pred, 'Wa_Genz': Waz_pred, 'Wa_Genm': Wam_pred, 'Wb_Genx': Wbx_pred, 'Wb_Geny': Wby_pred, 'Wb_Genz': Wbz_pred, 'Wb_Genm': Wbm_pred, 'H_Genx': Hx_pred, 'H_Geny': Hy_pred, 'H_Genz': Hz_pred, 'H_Genm': Hm_pred}
         pred = torch.stack([pred_map[t] for t in self.targets], dim=1)
         pred = self.target_transform(pred)
         return self.loss(pred, targets)
@@ -70,9 +69,9 @@ def calc_tree(outputs: torch.Tensor, attributes: torch.Tensor):
         Nax_pred, Nay_pred, Naz_pred, Nam_pred, Lax_vis, Lay_vis, Laz_vis, Lam_vis)
     Wbx_pred, Wby_pred, Wbz_pred, Wbm_pred = add_fourvectors(
         Nbx_pred, Nby_pred, Nbz_pred, Nbm_pred, Lbx_vis, Lby_vis, Lbz_vis, Lbm_vis)
-    _, _, _, Hm_pred = add_fourvectors(Wax_pred, Way_pred, Waz_pred, Wam_pred,
+    Hx_pred, Hy_pred, Hz_pred, Hm_pred = add_fourvectors(Wax_pred, Way_pred, Waz_pred, Wam_pred,
                                        Wbx_pred, Wby_pred, Wbz_pred, Wbm_pred)
-    return Nbx_pred, Nby_pred, Wam_pred, Wbm_pred, Hm_pred
+    return Nbx_pred, Nby_pred, Wax_pred, Way_pred, Waz_pred, Wam_pred, Wbx_pred, Wby_pred, Wbz_pred, Wbm_pred, Hx_pred, Hy_pred, Hz_pred, Hm_pred
 
 
 @hydra.main(config_path="../../configs", config_name="config")

@@ -5,3 +5,4 @@ cr: 1.0
 input_dim: 10
 output_dim: 4
 dropout_prob: 0.0
+lr: ${optimizer.factory.lr}

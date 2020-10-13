@@ -10,7 +10,7 @@ from torch import Tensor
 
 
 class DNN(pl.LightningModule):
-    def __init__(self, cr: float, cs: List[int], input_dim: int, output_dim: int, optimizer_cfg: dict, scheduler_cfg: dict, criterion_cfg: dict, output_mean: Tensor, output_std: Tensor, target_mean: Tensor, target_std: Tensor, dropout_prob: float = 0.5, steps_per_epoch: int = None):
+    def __init__(self, cr: float, cs: List[int], input_dim: int, output_dim: int, optimizer_cfg: dict, scheduler_cfg: dict, criterion_cfg: dict, output_mean: Tensor, output_std: Tensor, target_mean: Tensor, target_std: Tensor, lr: float = None, dropout_prob: float = 0.5, steps_per_epoch: int = None):
         super().__init__()
         cs = [int(cr * x) for x in cs]
         self.save_hyperparameters()
@@ -18,7 +18,7 @@ class DNN(pl.LightningModule):
         self.optimizer_factory = hydra.utils.instantiate(optimizer_cfg)
         self.steps_per_epoch = steps_per_epoch
         self.scheduler_cfg = scheduler_cfg
-        self.lr = None
+        self.lr = lr
 
         self.register_buffer('output_mean', output_mean)
         self.register_buffer('output_std', output_std)

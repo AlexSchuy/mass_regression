@@ -1,0 +1,3 @@
+# @package _group_
+_target_: mass_regression.criterion.higgs.HiggsLoss
+targets: [Na_Genx, Na_Geny, Na_Genz, Nb_Genx, Nb_Geny, Nb_Genz, Wa_Genx, Wa_Geny, Wa_Genz, Wa_Genm, Wb_Genx, Wb_Geny, Wb_Genz, Wb_Genm, H_Genm]
