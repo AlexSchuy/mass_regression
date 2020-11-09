@@ -28,6 +28,21 @@ def add_fourvectors(px1, py1, pz1, pm1, px2, py2, pz2, pm2):
     pm = m_squared**0.5
     return px, py, pz, pm
 
+def add_fourvectors_squared(px1, py1, pz1, pE1, px2, py2, pz2, pE2):
+    px = px1 + px2
+    py = py1 + py2
+    pz = pz1 + pz2
+    E = pE1 + pE2
+    m_squared = E**2 - px**2 - py**2 - pz**2
+    return px, py, pz, m_squared
+
+def add_four_fourvectors_squared(px1, py1, pz1, pE1, px2, py2, pz2, pE2, px3, py3, pz3, pE3, px4, py4, pz4, pE4):
+    px = px1 + px2 + px3 + px4
+    py = py1 + py2 + py3 + py4
+    pz = pz1 + pz2 + pz3 + pz4
+    E = pE1 + pE2 + pE3 + pE4
+    m_squared = E**2 - px**2 - py**2 - pz**2
+    return px, py, pz, m_squared
 
 class StandardScaler():
     """Standardize data by removing the mean and scaling to

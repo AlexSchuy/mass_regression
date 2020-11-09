@@ -141,6 +141,7 @@ class HiggsDataModule(pl.LightningDataModule):
                 df[f'{name}z'] = z
                 df[f'{name}E'] = E
                 df[f'{name}m'] = m
+                df[f'{name}m_squared'] = m**2
             else:
                 df[name] = values
         df = df.astype('float32')
