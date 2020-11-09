@@ -89,7 +89,10 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
 def hydra_main(cfg: DictConfig) -> None:
     # Set up python logging.
     logger = logging.getLogger()
-    logger.setLevel(cfg.log_level)
+    logging.basicConfig(
+        format='%(asctime)s %(levelname)-8s %(message)s',
+        level=cfg.log_level,
+        datefmt='%Y-%m-%d %H:%M:%S')
     logging.info(cfg.pretty())
     if 'slurm' in cfg.train:
         slurm_dir = Path.cwd() / 'slurm'
