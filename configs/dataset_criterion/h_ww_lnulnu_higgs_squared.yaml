@@ -1,0 +1,4 @@
+# @package _group_
+_target_: mass_regression.criterion.higgs.HiggsLoss
+targets: [H_Genm_squared]
+use_square: True

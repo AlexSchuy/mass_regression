@@ -14,12 +14,18 @@ import torch
 from omegaconf import DictConfig, OmegaConf
 
 import wandb
-from mass_regression.utils import StandardScaler
 from mass_regression.training.checkpoint import CheckpointEveryNSteps
+from mass_regression.utils import StandardScaler
 
 
-def train(cfg: DictConfig, output_dir: Path) -> None:
+def train(cfg: DictConfig) -> None:
     logging.info('Beginning training...')
+
+    if cfg.overfit:
+        overfit_batches = 1
+        cfg.train.batch_size = 1
+    else:
+        overfit_batches = 0.0
 
     # Instantiate the standard scalar transforms.
     feature_transform, output_transform, target_transform = hydra.utils.instantiate(
@@ -38,11 +44,8 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
             steps_per_epoch = len(datamodule.train_dataloader())
 
     # Instantiate the model (pass configs and mean/std to avoid pickle issues in checkpointing).
-    model = hydra.utils.instantiate(
-        cfg.model, optimizer_cfg=cfg.optimizer.factory, scheduler_cfg=scheduler_cfg, criterion_cfg=cfg.dataset_criterion,
-        output_mean=output_transform.mean, output_std=output_transform.std, target_mean=target_transform.mean,
-        target_std=target_transform.std, steps_per_epoch=steps_per_epoch)
-
+    model = hydra.utils.instantiate(cfg.model.target, cfg=cfg, steps_per_epoch=steps_per_epoch, output_mean=output_transform.mean,
+                                    output_std=output_transform.std, target_mean=target_transform.mean, target_std=target_transform.std)
     callbacks = []
 
     # Set up checkpointing.
@@ -51,8 +54,7 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
         resume_from_checkpoint = cfg.init_ckpt
     else:
         resume_from_checkpoint = None
-    checkpoint_callback = hydra.utils.instantiate(
-        cfg.checkpoint, filepath=f'{str(output_dir)}/{{epoch:02d}}')
+    checkpoint_callback = hydra.utils.instantiate(cfg.checkpoint)
 
     # Set up early stopping.
     if 'early_stopping' in cfg:
@@ -68,18 +70,16 @@ def train(cfg: DictConfig, output_dir: Path) -> None:
     callbacks.append(step_checkpoint)
 
     # Set up wandb logging.
-    wandb_id = cfg.wandb.id
-    if wandb_id is None:
-        wandb_id = (output_dir.parent.name +
-                    output_dir.name).replace('-', '')
     logger = hydra.utils.instantiate(
-        cfg.wandb, save_dir=str(output_dir), id=wandb_id)
+        cfg.wandb, save_dir=cfg.outputs_dir, version=cfg.wandb.version, group=cfg.wandb.name)
+    shutil.copytree(Path.cwd() / '.hydra',
+                    Path(logger.experiment.dir) / '.hydra')
+    cfg.wandb.version = logger.version
 
     # train
-    trainer = pl.Trainer(gpus=cfg.train.gpus, logger=logger, weights_save_path=str(
-        output_dir), max_epochs=cfg.train.num_epochs, checkpoint_callback=checkpoint_callback,
-        resume_from_checkpoint=resume_from_checkpoint, deterministic=True, distributed_backend=cfg.train.distributed_backend,
-        gradient_clip_val=cfg.train.gradient_clip_val, callbacks=callbacks, terminate_on_nan=True, auto_lr_find=cfg.optimizer.auto_lr)
+    trainer = pl.Trainer(gpus=cfg.train.gpus, logger=logger, max_epochs=cfg.train.num_epochs, checkpoint_callback=checkpoint_callback,
+                         resume_from_checkpoint=resume_from_checkpoint, deterministic=True, distributed_backend=cfg.train.distributed_backend,
+                         gradient_clip_val=cfg.train.gradient_clip_val, callbacks=callbacks, terminate_on_nan=True, auto_lr_find=cfg.optimizer.auto_lr, overfit_batches=overfit_batches)
     trainer.logger.log_hyperparams(cfg._content)  # pylint: disable=no-member
     trainer.tune(model=model, datamodule=datamodule)
     trainer.fit(model=model, datamodule=datamodule)
@@ -100,10 +100,10 @@ def hydra_main(cfg: DictConfig) -> None:
         executor = submitit.AutoExecutor(slurm_dir)
         executor.update_parameters(slurm_gpus_per_node=cfg.train.slurm.gpus_per_node, slurm_nodes=cfg.train.slurm.nodes, slurm_ntasks_per_node=cfg.train.slurm.gpus_per_node,
                                    slurm_cpus_per_task=cfg.train.slurm.cpus_per_task, slurm_time=cfg.train.slurm.time, slurm_additional_parameters={'constraint': 'gpu', 'account': cfg.train.slurm.account})
-        job = executor.submit(train, cfg=cfg, output_dir=Path.cwd())
+        job = executor.submit(train, cfg=cfg)
         logging.info(f'submitted job {job.job_id}.')
     else:
-        train(cfg, output_dir=Path.cwd())
+        train(cfg)
 
 
 if __name__ == '__main__':

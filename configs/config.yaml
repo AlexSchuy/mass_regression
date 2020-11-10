@@ -1,6 +1,12 @@
+outputs_dir: /global/cscratch1/sd/schuya/mass_regression/outputs
+predictions_dir: /global/cscratch1/sd/schuya/mass_regression/pred
+hydra:
+  run:
+    dir: ${outputs_dir}/hydra/${now:%Y-%m-%d}/${now:%H-%M-%S}
 seed: 1588147245
 deterministic: False
 init_ckpt: null
+overfit: False
 log_level: INFO
 defaults:
   - transforms: fit

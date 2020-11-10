@@ -2,6 +2,6 @@
 _target_: pytorch_lightning.loggers.WandbLogger
 project: missing-mass
 entity: uw-missing-mass
-id: null
+version: null
 name: ${dataset_criterion}-${model}
 log_model: false
