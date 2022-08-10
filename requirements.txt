@@ -71,7 +71,7 @@ mkl-service==2.3.0
 mpi4py==3.0.3
 msgpack==1.0.0
 multidict==4.7.6
-nbconvert==5.6.1
+nbconvert==6.3.0
 nbformat @ file:///home/conda/feedstock_root/build_artifacts/nbformat_1594060262917/work
 networkx==2.4
 notebook @ file:///home/conda/feedstock_root/build_artifacts/notebook_1596502478505/work
